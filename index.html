@@ -145,7 +145,8 @@ async function refresh() {
   $("deploySec").hidden = !(account && !pactAddr);
   if (!pactAddr) { secs.forEach(s => $(s).hidden = true); return; }
 
-  const pact = new ethers.Contract(pactAddr, PACT_ABI, readProvider);
+  const rp = signer ? signer.provider : readProvider; // wallet's own node sees new txs first
+  const pact = new ethers.Contract(pactAddr, PACT_ABI, rp);
   let me, friend, endsAt, locked, left;
   try {
     [me, friend, endsAt, locked, left] = await Promise.all(
@@ -172,7 +173,7 @@ async function refresh() {
   $("withdrawBtn").disabled = left > 0n || locked === 0n;
   $("failBtn").disabled = left === 0n || locked === 0n;
   if (isMe) {
-    const bal = await new ethers.Contract(USDC, USDC_ABI, readProvider).balanceOf(account);
+    const bal = await new ethers.Contract(USDC, USDC_ABI, rp).balanceOf(account);
     $("bal").textContent = ethers.formatUnits(bal, 6);
   }
   if (account && !isMe && !isFriend) say("This wallet is neither the gym-goer nor the friend on this pact.", "err");
