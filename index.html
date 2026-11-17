@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GymPact</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f5f5f2; --card:#fff; --fg:#161616; --mut:#6b6b6b; --line:#e2e2dc; --go:#136f3a; --bad:#b3261e; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#131412; --card:#1c1e1b; --fg:#ecece8; --mut:#9a9a94; --line:#2e302c; --go:#4cc27a; --bad:#ff7a70; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif; }
+  main { max-width:540px; margin:0 auto; padding:40px 20px 80px; }
+  h1 { margin:0; font-size:34px; letter-spacing:-0.02em; }
+  h2 { margin:0 0 12px; font-size:17px; }
+  .sub, .mut { color:var(--mut); }
+  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-top:16px; }
+  label { display:block; font-size:14px; color:var(--mut); margin-bottom:10px; }
+  input { display:block; width:100%; margin-top:4px; padding:10px 12px; font:inherit; color:inherit; background:transparent; border:1px solid var(--line); border-radius:8px; }
+  button { font:inherit; font-weight:600; padding:11px 18px; border-radius:8px; border:0; cursor:pointer; background:var(--fg); color:var(--bg); }
+  button.bad { background:var(--bad); color:#fff; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  dl { display:grid; grid-template-columns:auto 1fr; gap:6px 16px; margin:0; font-size:15px; }
+  dt { color:var(--mut); } dd { margin:0; word-break:break-all; }
+  #locked { font-size:22px; font-weight:700; }
+  #msg { margin-top:16px; min-height:24px; } #msg.err { color:var(--bad); } #msg.ok { color:var(--go); }
+</style>
+</head>
+<body>
+<main>
+  <h1>GymPact</h1>
+  <p class="sub">Gym 3× a week for 90 days — or my friend takes the USDC.</p>
+  <button id="connect">Connect wallet</button>
+  <p id="account" class="mut"></p>
+
+  <section id="deploySec" hidden>
+    <h2>Create the pact</h2>
+    <label>Friend's wallet address<input id="friendIn" placeholder="0x…" autocomplete="off"></label>
+    <button id="deployBtn">Deploy contract</button>
+    <p class="mut" style="margin:18px 0 6px">Already have one?</p>
+    <label>Contract address<input id="existingIn" placeholder="0x…" autocomplete="off"></label>
+    <button id="openBtn">Open</button>
+  </section>
+
+  <section id="statusSec" hidden>
+    <h2>The pact</h2>
+    <dl>
+      <dt>Locked</dt><dd id="locked">–</dd>
+      <dt>Time left</dt><dd id="left">–</dd>
+      <dt>Unlocks</dt><dd id="unlock">–</dd>
+      <dt>Gym-goer</dt><dd id="meAddr">–</dd>
+      <dt>Friend</dt><dd id="friendAddr">–</dd>
+      <dt>Contract</dt><dd id="pactAddr">–</dd>
+    </dl>
+  </section>
+
+  <section id="depositSec" hidden>
+    <h2>Deposit USDC</h2>
+    <label>Amount (you have <span id="bal">–</span> USDC)<input id="amountIn" inputmode="decimal" placeholder="100"></label>
+    <button id="depositBtn">Deposit</button>
+  </section>
+
+  <section id="failSec" hidden>
+    <h2>They skipped the gym?</h2>
+    <p class="mut">Sends all locked USDC to your wallet. This cannot be undone.</p>
+    <button id="failBtn" class="bad">They failed — claim the USDC</button>
+  </section>
+
+  <section id="withdrawSec" hidden>
+    <h2>Made it?</h2>
+    <p class="mut">Available once the 90 days and the 3-day grace period are over.</p>
+    <button id="withdrawBtn">Withdraw my USDC</button>
+  </section>
+
+  <p id="msg"></p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script>
+const BASE_ID = 8453, BASE_HEX = "0x2105";
+const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const BYTECODE = "0x60e060405234801561000f575f80fd5b506040516112de3803806112de833981810160405281019061003191906101ef565b5f73ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff160361009f576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161009690610274565b60405180910390fd5b3373ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff160361010d576040517f08c379a0000000000000000000000000000000000000000000000000000000008152600401610104906102dc565b60405180910390fd5b3373ffffffffffffffffffffffffffffffffffffffff1660808173ffffffffffffffffffffffffffffffffffffffff16815250508073ffffffffffffffffffffffffffffffffffffffff1660a08173ffffffffffffffffffffffffffffffffffffffff16815250506276a700426101849190610330565b60c0818152505050610363565b5f80fd5b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f6101be82610195565b9050919050565b6101ce816101b4565b81146101d8575f80fd5b50565b5f815190506101e9816101c5565b92915050565b5f6020828403121561020457610203610191565b5b5f610211848285016101db565b91505092915050565b5f82825260208201905092915050565b7f667269656e64206973207a65726f2061646472657373000000000000000000005f82015250565b5f61025e60168361021a565b91506102698261022a565b602082019050919050565b5f6020820190508181035f83015261028b81610252565b9050919050565b7f667269656e642063616e6e6f7420626520796f750000000000000000000000005f82015250565b5f6102c660148361021a565b91506102d182610292565b602082019050919050565b5f6020820190508181035f8301526102f3816102ba565b9050919050565b5f819050919050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f61033a826102fa565b9150610345836102fa565b925082820190508082111561035d5761035c610303565b5b92915050565b60805160a05160c051610f126103cc5f395f81816101a6015281816101d0015281816102c9015261063301525f818161057d015281816105a1015281816107a1015261085f01525f818161023701528181610436015281816104f401526108d00152610f125ff3fe608060405234801561000f575f80fd5b506004361061009c575f3560e01c806389a302711161006457806389a3027114610122578063901e422914610140578063a9cc47181461015e578063cb12b48f14610168578063cf309012146101865761009c565b80630a09284a146100a05780631300a6d1146100be578063137d29d9146100dc5780631be05289146100fa5780633ccfd60b14610118575b5f80fd5b6100a86101a4565b6040516100b5919061099c565b60405180910390f35b6100c66101c8565b6040516100d3919061099c565b60405180910390f35b6100e4610227565b6040516100f1919061099c565b60405180910390f35b61010261022e565b60405161010f919061099c565b60405180910390f35b610120610235565b005b61012a610563565b6040516101379190610a2f565b60405180910390f35b61014861057b565b6040516101559190610a68565b60405180910390f35b61016661059f565b005b6101706108ce565b60405161017d9190610a68565b60405180910390f35b61018e6108f2565b60405161019b919061099c565b60405180910390f35b7f000000000000000000000000000000000000000000000000000000000000000081565b5f806203f4807f00000000000000000000000000000000000000000000000000000000000000006101f99190610aae565b905080421161021f57600142826102109190610ae1565b61021a9190610aae565b610221565b5f5b91505090565b6203f48081565b6276a70081565b7f000000000000000000000000000000000000000000000000000000000000000073ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146102c3576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016102ba90610b6e565b60405180910390fd5b6203f4807f00000000000000000000000000000000000000000000000000000000000000006102f29190610aae565b4211610333576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161032a90610bd6565b60405180910390fd5b5f73833589fcd6edb6e08f4c7c32d4f71b54bda0291373ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff1660e01b81526004016103819190610a68565b602060405180830381865afa15801561039c573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906103c09190610c22565b90505f8111610404576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016103fb90610c97565b60405180910390fd5b73833589fcd6edb6e08f4c7c32d4f71b54bda0291373ffffffffffffffffffffffffffffffffffffffff1663a9059cbb7f0000000000000000000000000000000000000000000000000000000000000000836040518363ffffffff1660e01b8152600401610473929190610cb5565b6020604051808303815f875af115801561048f573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906104b39190610d11565b6104f2576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016104e990610d86565b60405180910390fd5b7f000000000000000000000000000000000000000000000000000000000000000073ffffffffffffffffffffffffffffffffffffffff167f9ae36d545514bf1e12f2c7e16c6f07e049946c2925b6cc3d50c28edbfcfe663682604051610558919061099c565b60405180910390a250565b73833589fcd6edb6e08f4c7c32d4f71b54bda0291381565b7f000000000000000000000000000000000000000000000000000000000000000081565b7f000000000000000000000000000000000000000000000000000000000000000073ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161461062d576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161062490610dee565b60405180910390fd5b6203f4807f000000000000000000000000000000000000000000000000000000000000000061065c9190610aae565b42111561069e576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161069590610e56565b60405180910390fd5b5f73833589fcd6edb6e08f4c7c32d4f71b54bda0291373ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff1660e01b81526004016106ec9190610a68565b602060405180830381865afa158015610707573d5f803e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061072b9190610c22565b90505f811161076f576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161076690610ebe565b60405180910390fd5b73833589fcd6edb6e08f4c7c32d4f71b54bda0291373ffffffffffffffffffffffffffffffffffffffff1663a9059cbb7f0000000000000000000000000000000000000000000000000000000000000000836040518363ffffffff1660e01b81526004016107de929190610cb5565b6020604051808303815f875af11580156107fa573d5f803e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061081e9190610d11565b61085d576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161085490610d86565b60405180910390fd5b7f000000000000000000000000000000000000000000000000000000000000000073ffffffffffffffffffffffffffffffffffffffff167f325cf12a5a810dd6b21d7aedc0fc5e08fc623604ee1d61fdba2a60e7719f6462826040516108c3919061099c565b60405180910390a250565b7f000000000000000000000000000000000000000000000000000000000000000081565b5f73833589fcd6edb6e08f4c7c32d4f71b54bda0291373ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff1660e01b81526004016109409190610a68565b602060405180830381865afa15801561095b573d5f803e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061097f9190610c22565b905090565b5f819050919050565b61099681610984565b82525050565b5f6020820190506109af5f83018461098d565b92915050565b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f819050919050565b5f6109f76109f26109ed846109b5565b6109d4565b6109b5565b9050919050565b5f610a08826109dd565b9050919050565b5f610a19826109fe565b9050919050565b610a2981610a0f565b82525050565b5f602082019050610a425f830184610a20565b92915050565b5f610a52826109b5565b9050919050565b610a6281610a48565b82525050565b5f602082019050610a7b5f830184610a59565b92915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f610ab882610984565b9150610ac383610984565b9250828201905080821115610adb57610ada610a81565b5b92915050565b5f610aeb82610984565b9150610af683610984565b9250828203905081811115610b0e57610b0d610a81565b5b92915050565b5f82825260208201905092915050565b7f6f6e6c79206d65000000000000000000000000000000000000000000000000005f82015250565b5f610b58600783610b14565b9150610b6382610b24565b602082019050919050565b5f6020820190508181035f830152610b8581610b4c565b9050919050565b7f70616374207374696c6c2072756e6e696e6700000000000000000000000000005f82015250565b5f610bc0601283610b14565b9150610bcb82610b8c565b602082019050919050565b5f6020820190508181035f830152610bed81610bb4565b9050919050565b5f80fd5b610c0181610984565b8114610c0b575f80fd5b50565b5f81519050610c1c81610bf8565b92915050565b5f60208284031215610c3757610c36610bf4565b5b5f610c4484828501610c0e565b91505092915050565b7f6e6f7468696e6720746f207769746864726177000000000000000000000000005f82015250565b5f610c81601383610b14565b9150610c8c82610c4d565b602082019050919050565b5f6020820190508181035f830152610cae81610c75565b9050919050565b5f604082019050610cc85f830185610a59565b610cd5602083018461098d565b9392505050565b5f8115159050919050565b610cf081610cdc565b8114610cfa575f80fd5b50565b5f81519050610d0b81610ce7565b92915050565b5f60208284031215610d2657610d25610bf4565b5b5f610d3384828501610cfd565b91505092915050565b7f7472616e73666572206661696c656400000000000000000000000000000000005f82015250565b5f610d70600f83610b14565b9150610d7b82610d3c565b602082019050919050565b5f6020820190508181035f830152610d9d81610d64565b9050919050565b7f6f6e6c7920667269656e640000000000000000000000000000000000000000005f82015250565b5f610dd8600b83610b14565b9150610de382610da4565b602082019050919050565b5f6020820190508181035f830152610e0581610dcc565b9050919050565b7f746f6f206c6174652c207061637420636f6d706c6574656400000000000000005f82015250565b5f610e40601883610b14565b9150610e4b82610e0c565b602082019050919050565b5f6020820190508181035f830152610e6d81610e34565b9050919050565b7f6e6f7468696e6720746f20636c61696d000000000000000000000000000000005f82015250565b5f610ea8601083610b14565b9150610eb382610e74565b602082019050919050565b5f6020820190508181035f830152610ed581610e9c565b905091905056fea264697066735822122098d2851ad8614e40fc7eaac95f58dc6e48a9841aac5889ce9ff7642c331a29df64736f6c634300081a0033";
+const PACT_ABI = [
+  "constructor(address _friend)",
+  "function me() view returns (address)",
+  "function friend() view returns (address)",
+  "function endsAt() view returns (uint256)",
+  "function locked() view returns (uint256)",
+  "function timeLeft() view returns (uint256)",
+  "function fail()",
+  "function withdraw()"
+];
+const USDC_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function transfer(address,uint256) returns (bool)"
+];
+
+const $ = id => document.getElementById(id);
+const readProvider = new ethers.JsonRpcProvider("https://mainnet.base.org", BASE_ID, { staticNetwork: true });
+let signer = null, account = null, pactAddr = loadAddr();
+
+function loadAddr() {
+  const q = new URLSearchParams(location.search).get("c") || localStorage.getItem("gympact");
+  return q && ethers.isAddress(q) ? ethers.getAddress(q) : null;
+}
+function setAddr(a) {
+  pactAddr = ethers.getAddress(a);
+  localStorage.setItem("gympact", pactAddr);
+  history.replaceState(null, "", "?c=" + pactAddr);
+}
+function say(text, kind) { $("msg").textContent = text; $("msg").className = kind || ""; }
+function errText(e) { return (e && (e.shortMessage || e.reason || e.message)) || String(e); }
+function fmtLeft(s) {
+  s = Number(s);
+  if (s === 0) return "Finished";
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600);
+  return d + " days " + h + " hours";
+}
+
+async function connect() {
+  if (!window.ethereum) return say("No wallet found. Open this page in a browser with MetaMask, Coinbase Wallet or Rabby.", "err");
+  try {
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    try {
+      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BASE_HEX }] });
+    } catch (e) {
+      if (e.code !== 4902) throw e;
+      await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{
+        chainId: BASE_HEX, chainName: "Base",
+        nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+        rpcUrls: ["https://mainnet.base.org"], blockExplorerUrls: ["https://basescan.org"] }] });
+    }
+    signer = await new ethers.BrowserProvider(window.ethereum).getSigner();
+    account = await signer.getAddress();
+    $("account").textContent = "Connected: " + account;
+    $("connect").hidden = true;
+    window.ethereum.on("accountsChanged", () => location.reload());
+    window.ethereum.on("chainChanged", () => location.reload());
+    say("");
+    await refresh();
+  } catch (e) { say(errText(e), "err"); }
+}
+
+async function refresh() {
+  const secs = ["statusSec", "depositSec", "failSec", "withdrawSec"];
+  $("deploySec").hidden = !(account && !pactAddr);
+  if (!pactAddr) { secs.forEach(s => $(s).hidden = true); return; }
+
+  const pact = new ethers.Contract(pactAddr, PACT_ABI, readProvider);
+  let me, friend, endsAt, locked, left;
+  try {
+    [me, friend, endsAt, locked, left] = await Promise.all(
+      [pact.me(), pact.friend(), pact.endsAt(), pact.locked(), pact.timeLeft()]);
+  } catch (e) {
+    secs.forEach(s => $(s).hidden = true);
+    $("deploySec").hidden = !account;
+    return say("No GymPact contract found at " + pactAddr + ".", "err");
+  }
+
+  $("statusSec").hidden = false;
+  $("locked").textContent = ethers.formatUnits(locked, 6) + " USDC";
+  $("left").textContent = fmtLeft(left);
+  $("unlock").textContent = new Date((Number(endsAt) + 3 * 86400) * 1000).toLocaleString();
+  $("meAddr").textContent = me;
+  $("friendAddr").textContent = friend;
+  $("pactAddr").textContent = pactAddr;
+
+  const isMe = account && account.toLowerCase() === me.toLowerCase();
+  const isFriend = account && account.toLowerCase() === friend.toLowerCase();
+  $("depositSec").hidden = !isMe;
+  $("withdrawSec").hidden = !isMe;
+  $("failSec").hidden = !isFriend;
+  $("withdrawBtn").disabled = left > 0n || locked === 0n;
+  $("failBtn").disabled = left === 0n || locked === 0n;
+  if (isMe) {
+    const bal = await new ethers.Contract(USDC, USDC_ABI, readProvider).balanceOf(account);
+    $("bal").textContent = ethers.formatUnits(bal, 6);
+  }
+  if (account && !isMe && !isFriend) say("This wallet is neither the gym-goer nor the friend on this pact.", "err");
+}
+
+async function send(label, fn) {
+  try {
+    say(label + ": confirm in your wallet…");
+    const tx = await fn();
+    say(label + ": waiting for confirmation…");
+    await tx.wait();
+    say(label + " done.", "ok");
+    await refresh();
+  } catch (e) { say(label + " failed: " + errText(e), "err"); }
+}
+
+$("connect").onclick = connect;
+
+$("deployBtn").onclick = async () => {
+  const friend = $("friendIn").value.trim();
+  if (!ethers.isAddress(friend)) return say("That is not a valid wallet address.", "err");
+  if (friend.toLowerCase() === account.toLowerCase()) return say("Your friend's address can't be your own.", "err");
+  try {
+    say("Deploy: confirm in your wallet…");
+    const c = await new ethers.ContractFactory(PACT_ABI, BYTECODE, signer).deploy(friend);
+    say("Deploy: waiting for confirmation…");
+    await c.waitForDeployment();
+    setAddr(await c.getAddress());
+    say("Pact created. The 90 days have started — now deposit your USDC.", "ok");
+    await refresh();
+  } catch (e) { say("Deploy failed: " + errText(e), "err"); }
+};
+
+$("openBtn").onclick = () => {
+  const a = $("existingIn").value.trim();
+  if (!ethers.isAddress(a)) return say("That is not a valid contract address.", "err");
+  setAddr(a); say(""); refresh();
+};
+
+$("depositBtn").onclick = () => {
+  let amount;
+  try { amount = ethers.parseUnits($("amountIn").value.trim(), 6); } catch (e) { amount = 0n; }
+  if (amount <= 0n) return say("Enter an amount of USDC.", "err");
+  send("Deposit", () => new ethers.Contract(USDC, USDC_ABI, signer).transfer(pactAddr, amount));
+};
+
+$("failBtn").onclick = () => {
+  if (!confirm("Claim all the locked USDC? This cannot be undone.")) return;
+  send("Claim", () => new ethers.Contract(pactAddr, PACT_ABI, signer).fail());
+};
+
+$("withdrawBtn").onclick = () =>
+  send("Withdraw", () => new ethers.Contract(pactAddr, PACT_ABI, signer).withdraw());
+
+refresh();
+</script>
+</body>
+</html>
