@@ -2,82 +2,561 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GymPact</title>
+<meta name="theme-color" content="#18191b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%2318191b'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%233dff7a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: light dark; --bg:#f5f5f2; --card:#fff; --fg:#161616; --mut:#6b6b6b; --line:#e2e2dc; --go:#136f3a; --bad:#b3261e; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#131412; --card:#1c1e1b; --fg:#ecece8; --mut:#9a9a94; --line:#2e302c; --go:#4cc27a; --bad:#ff7a70; } }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif; }
-  main { max-width:540px; margin:0 auto; padding:40px 20px 80px; }
-  h1 { margin:0; font-size:34px; letter-spacing:-0.02em; }
-  h2 { margin:0 0 12px; font-size:17px; }
-  .sub, .mut { color:var(--mut); }
-  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-top:16px; }
-  label { display:block; font-size:14px; color:var(--mut); margin-bottom:10px; }
-  input { display:block; width:100%; margin-top:4px; padding:10px 12px; font:inherit; color:inherit; background:transparent; border:1px solid var(--line); border-radius:8px; }
-  button { font:inherit; font-weight:600; padding:11px 18px; border-radius:8px; border:0; cursor:pointer; background:var(--fg); color:var(--bg); }
-  button.bad { background:var(--bad); color:#fff; }
-  button:disabled { opacity:.4; cursor:not-allowed; }
-  dl { display:grid; grid-template-columns:auto 1fr; gap:6px 16px; margin:0; font-size:15px; }
-  dt { color:var(--mut); } dd { margin:0; word-break:break-all; }
-  #locked { font-size:22px; font-weight:700; }
-  #msg { margin-top:16px; min-height:24px; } #msg.err { color:var(--bad); } #msg.ok { color:var(--go); }
+:root {
+  --rubber: #18191b;
+  --chalk: #f2f0ea;
+  --dust: #8f9196;
+  --line: rgba(242, 240, 234, .10);
+  --line-2: rgba(242, 240, 234, .2);
+  --go: #3dff7a;
+  --bad: #ff3346;
+  --judge: #fffdf5;
+  --led: var(--go);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-door: cubic-bezier(.7, 0, .25, 1);
+}
+* { box-sizing: border-box; }
+html { background: var(--rubber); }
+body {
+  margin: 0; min-height: 100vh; color: var(--chalk);
+  font-family: "Archivo", system-ui, sans-serif; font-size: 16px; line-height: 1.5;
+  background: var(--rubber) var(--floor, none) repeat;
+  overflow-x: hidden; -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(120% 90% at 50% 0%, transparent 35%, rgba(0, 0, 0, .6) 100%);
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--chalk); outline-offset: 3px; }
+[hidden] { display: none !important; }
+
+#dust { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+#beam {
+  position: fixed; z-index: 0; pointer-events: none;
+  left: 50%; top: -20vh; width: 74vw; height: 160vh;
+  transform: translateX(-50%) rotate(14deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 250, 235, .035) 30%, rgba(255, 250, 235, .07) 50%, rgba(255, 250, 235, .035) 70%, transparent);
+  filter: blur(18px);
+}
+
+/* ---------- wordmark: knurled steel ---------- */
+.wordmark {
+  display: inline-block; margin: 0; padding: 0 .06em .04em 0; font-stretch: 125%; font-weight: 900; line-height: .86; letter-spacing: -.035em;
+  font-size: clamp(54px, 12.5vw, 128px);
+  background:
+    linear-gradient(100deg, transparent 0 42%, rgba(255, 255, 255, .95) 50%, transparent 58% 100%) var(--gl, 160%) 0 / 250% 100% no-repeat,
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, .3) 0 1.5px, transparent 1.5px 4px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .3) 0 1.5px, transparent 1.5px 4px),
+    linear-gradient(180deg, #f1f3f6 0%, #b9bfc7 46%, #767c85 53%, #cdd2d8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .7)) drop-shadow(0 20px 30px rgba(0, 0, 0, .55));
+}
+.wordmark.glint { animation: glint 1.5s var(--ease-out) .25s both; }
+@keyframes glint { from { background-position: 160% 0, 0 0, 0 0, 0 0; } to { background-position: -70% 0, 0 0, 0 0, 0 0; } }
+
+/* ---------- buttons ---------- */
+.btn {
+  border: 0; border-radius: 12px; padding: 15px 24px;
+  font-weight: 800; font-stretch: 112%; font-size: 17px; letter-spacing: -.01em;
+  color: #052611; background: var(--go);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 12px 30px -10px color-mix(in srgb, var(--go) 75%, transparent);
+  transition: transform .18s var(--ease-out), box-shadow .2s, opacity .2s, background .2s;
+}
+.btn:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 16px 40px -8px color-mix(in srgb, var(--go) 90%, transparent); }
+.btn:active { transform: scale(.97); }
+.btn.big { font-size: 21px; padding: 20px 32px; border-radius: 14px; }
+.btn.ghost { background: transparent; color: var(--chalk); box-shadow: inset 0 0 0 1px var(--line-2); }
+.btn.danger { background: var(--bad); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 12px 30px -10px rgba(255, 51, 70, .8); }
+.btn:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+.btn.ghost:disabled { box-shadow: inset 0 0 0 1px var(--line-2); }
+.btn.pulse { position: relative; }
+.btn.pulse::after {
+  content: ""; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--go) 70%, transparent);
+  animation: ring 2s ease-out infinite;
+}
+@keyframes ring { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--go) 60%, transparent); } 100% { box-shadow: 0 0 0 22px transparent; } }
+.link { background: none; border: 0; padding: 4px 0; color: var(--dust); text-decoration: underline; text-underline-offset: 3px; font-size: 14px; }
+.link:hover { color: var(--chalk); }
+
+.sound {
+  position: fixed; top: 14px; right: 14px; z-index: 80; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; background: rgba(0, 0, 0, .35); border: 1px solid var(--line-2); color: var(--dust);
+}
+.sound svg { width: 18px; height: 18px; }
+.sound[aria-pressed="false"] .w { display: none; }
+.sound[aria-pressed="true"] .x { display: none; }
+
+/* ---------- 7-segment LEDs ---------- */
+.led { display: flex; align-items: flex-start; gap: calc(var(--dh) * .07); }
+.lg { display: flex; flex-direction: column; align-items: center; }
+.lgd { display: flex; gap: calc(var(--dh) * .05); }
+.lgd, .cl { filter: drop-shadow(0 0 2px var(--led)) drop-shadow(0 0 12px color-mix(in srgb, var(--led) 55%, transparent)); }
+.dg { display: block; height: var(--dh); width: calc(var(--dh) * .73); overflow: visible; }
+.dg polygon { fill: var(--led); opacity: .075; transition: opacity .06s; }
+.dg polygon.on { opacity: 1; }
+.cl { display: block; height: var(--dh); width: calc(var(--dh) * .2); transition: width .15s; }
+.cl circle { fill: var(--led); opacity: .075; }
+.cl.on circle { opacity: 1; }
+.lu { margin-top: 8px; font-size: 12px; color: var(--dust); }
+.led.text .cl { width: 0; }
+.led.text .lu { visibility: hidden; }
+.booting .dg polygon { animation: segflick .8s steps(1) var(--d, 0s) backwards; }
+@keyframes segflick { 0% { opacity: .075; } 25% { opacity: 1; } 45% { opacity: .075; } 70% { opacity: 1; } 85% { opacity: .075; } }
+.blink { animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: .15; } }
+
+/* ---------- gate: garage shutter + keycard reader ---------- */
+.gate { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; overflow: hidden; }
+.shutter {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, .25), transparent 30%, transparent 70%, rgba(0, 0, 0, .45)),
+    repeating-linear-gradient(180deg, #2a2b2f 0 3px, #222326 3px 25px, #151618 25px 28px, #303236 28px 29px);
+  transition: transform 1.15s var(--ease-door);
+}
+.shutter::after {
+  content: ""; position: absolute; left: 50%; bottom: 26px; width: 120px; height: 14px; transform: translateX(-50%);
+  border-radius: 7px; background: linear-gradient(#5a5e65, #2a2c30); box-shadow: 0 2px 0 #0c0c0d;
+}
+.gate.open .shutter { transform: translateY(-104%); }
+.gate-inner { position: relative; z-index: 1; width: min(94vw, 720px); text-align: center; padding: 24px 0 40px; transition: opacity .35s, transform .5s var(--ease-out); }
+.gate.open .gate-inner { opacity: 0; transform: translateY(-60px) scale(.96); }
+.gate .wordmark { font-size: clamp(44px, 13.5vw, 104px); }
+.gate-line { margin: 18px auto 0; color: var(--dust); max-width: 34ch; font-size: 17px; text-wrap: balance; }
+.reader {
+  position: relative; width: 210px; margin: 28px auto 26px; padding: 14px; border-radius: 24px;
+  background: linear-gradient(160deg, #303237, #16171a 60%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 0 0 1px #050506, 0 40px 60px -24px #000;
+}
+.reader-led { --dh: 30px; justify-content: center; padding: 10px 0; border-radius: 10px; background: #08090a; box-shadow: inset 0 2px 6px #000; --led: #ffb020; }
+.reader.ok .reader-led { --led: var(--go); }
+.reader.no .reader-led { --led: var(--bad); }
+.reader-pad {
+  position: relative; height: 150px; margin-top: 14px; border-radius: 16px; overflow: hidden;
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 38%, #24262a, #0f1012 70%); box-shadow: inset 0 2px 10px rgba(0, 0, 0, .8);
+}
+.nfc { width: 54px; height: 54px; fill: none; stroke: #4b4e54; stroke-width: 3; stroke-linecap: round; }
+.reader.scanning .nfc path { animation: nfc 1s ease-in-out infinite; }
+.reader.scanning .nfc path:nth-child(2) { animation-delay: .15s; }
+.reader.scanning .nfc path:nth-child(3) { animation-delay: .3s; }
+@keyframes nfc { 50% { stroke: #ffb020; } }
+.card {
+  position: absolute; left: 50%; bottom: 14px; width: 150px; height: 94px; margin-left: -75px; border-radius: 11px; padding: 10px 12px;
+  display: flex; flex-direction: column; justify-content: space-between; text-align: left;
+  color: #18191b; background: linear-gradient(135deg, #f4f2ec, #c9c5b9);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .55);
+  transform: translateY(150%) rotate(-10deg); opacity: 0; transition: transform .6s var(--ease-out), opacity .25s;
+}
+.card-brand { font-weight: 900; font-stretch: 125%; font-size: 13px; letter-spacing: -.02em; }
+.card-chip { width: 22px; height: 16px; border-radius: 3px; background: linear-gradient(135deg, #d9b25a, #9c7a2c); }
+.card-addr { font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.reader.carded .card { transform: translateY(0) rotate(-5deg); opacity: 1; }
+.laser {
+  position: absolute; left: 6%; right: 6%; top: 10%; height: 2px; opacity: 0;
+  background: var(--bad); box-shadow: 0 0 10px var(--bad), 0 0 26px var(--bad);
+}
+.reader.scanning .laser { opacity: 1; animation: sweep .85s ease-in-out infinite alternate; }
+@keyframes sweep { to { top: 88%; } }
+.reader-lights { display: flex; justify-content: center; gap: 12px; margin-top: 12px; }
+.rl { width: 9px; height: 9px; border-radius: 50%; background: #2a2b2f; }
+.reader.no .rl.r { background: var(--bad); box-shadow: 0 0 10px var(--bad); }
+.reader.ok .rl.g { background: var(--go); box-shadow: 0 0 10px var(--go); }
+.gate-msg { min-height: 24px; margin: 18px auto 6px; max-width: 40ch; color: var(--dust); text-wrap: balance; }
+.gate-msg.bad { color: #ff8a95; }
+.wallet-links { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin: 0 0 10px; }
+.wallet-links a { color: var(--chalk); }
+
+/* ---------- app ---------- */
+#app { position: relative; z-index: 2; max-width: 860px; margin: 0 auto; padding: 22px 22px 110px; }
+.topbar { display: flex; align-items: center; min-height: 40px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dust); padding: 7px 12px; border-radius: 999px; background: rgba(0, 0, 0, .3); border: 1px solid var(--line); }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--go); box-shadow: 0 0 8px var(--go); }
+.mast { margin-top: 26px; }
+.pledge { margin: 18px 0 0; font-size: 19px; color: #cfccc3; max-width: 46ch; text-wrap: balance; }
+
+.banner { margin-top: 26px; padding: 16px 18px; border-radius: 12px; display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.banner.bad { background: linear-gradient(90deg, rgba(255, 51, 70, .2), rgba(255, 51, 70, .06)); border: 1px solid rgba(255, 51, 70, .55); }
+.banner.good { background: linear-gradient(90deg, rgba(61, 255, 122, .16), rgba(61, 255, 122, .04)); border: 1px solid rgba(61, 255, 122, .5); }
+.banner p { margin: 0; max-width: 56ch; }
+
+.panel {
+  --dh-main: min(88px, calc((min(100vw, 860px) - 155px) / 7.9));
+  --dh: var(--dh-main);
+  position: relative; margin-top: 30px; padding: 26px 28px 18px; border-radius: 16px;
+  background: linear-gradient(180deg, #0c0d0e, #131416);
+  border: 1px solid #2b2d31;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 0 0 7px #1c1d20, 0 0 0 8px #2c2e32, 0 40px 70px -24px rgba(0, 0, 0, .85);
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform .25s ease-out;
+}
+.panel.bad { --led: var(--bad); }
+.panel::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(420px circle at var(--gx, 30%) var(--gy, 0%), rgba(255, 255, 255, .07), transparent 60%);
+}
+.panel::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .22) 0 1px, transparent 1px 3px);
+}
+.screw { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #70747b, #26282c); }
+.screw::after { content: ""; position: absolute; left: 1px; right: 1px; top: 4px; height: 1px; background: rgba(0, 0, 0, .7); transform: rotate(var(--sr, 30deg)); }
+.panel-row { display: flex; align-items: flex-start; gap: 22px; }
+.led-week { --dh: calc(var(--dh-main, 96px) * .5); padding-right: 22px; border-right: 1px solid #25272b; }
+.panel-caption { position: relative; margin: 16px 0 0; font-size: 14px; color: var(--dust); }
+.boot .panel { animation: power .6s ease-out .1s backwards; }
+@keyframes power { from { filter: brightness(0); } to { filter: none; } }
+
+.stakes { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 18px; margin: 30px 0 0; }
+.stakes div { min-width: 0; }
+.stakes dt { font-size: 13px; color: var(--dust); }
+.stakes dd { margin: 4px 0 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.amount { font-stretch: 118%; font-weight: 800; font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.amount small { font-size: 15px; font-weight: 600; color: var(--dust); margin-left: 6px; letter-spacing: 0; }
+.addr { background: none; border: 0; padding: 0; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; border-bottom: 1px dashed var(--line-2); }
+.addr:hover { border-bottom-color: var(--chalk); }
+.you { font-size: 12px; color: #052611; background: var(--go); padding: 1px 7px; border-radius: 999px; font-weight: 700; }
+
+/* barbell progress */
+.barbell { display: flex; align-items: center; height: 70px; margin-top: 34px; --plate: #1d9e52; }
+.barbell.bad { --plate: #d52a38; }
+.sleeve { display: flex; align-items: center; height: 100%; gap: 3px; }
+.sleeve .end { width: 22px; height: 14px; border-radius: 2px; background: linear-gradient(#e4e7eb, #7d838b); }
+.plate {
+  width: 15px; height: 70px; border-radius: 5px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, .22), transparent 40%, rgba(0, 0, 0, .35)), var(--plate);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .35);
+  transition: background .5s;
+}
+.plate.p2 { width: 13px; height: 56px; }
+.collar { width: 9px; height: 24px; border-radius: 3px; background: linear-gradient(#eef0f3, #8a9098); }
+.shaft {
+  position: relative; flex: 1; height: 12px; border-radius: 2px;
+  background:
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, .38) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .38) 0 1px, transparent 1px 3px),
+    linear-gradient(#cfd4da, #6c727b);
+}
+.fill { position: absolute; left: 0; top: -1px; bottom: -1px; width: var(--p, 0%); border-radius: 2px; background: linear-gradient(rgba(255, 255, 255, .92), rgba(255, 255, 255, .6)); box-shadow: 0 0 14px rgba(255, 255, 255, .45); transition: width 1.6s var(--ease-out); }
+.marker { position: absolute; top: -9px; bottom: -9px; left: var(--p, 0%); width: 2px; margin-left: -1px; background: var(--chalk); box-shadow: 0 0 10px #fff; transition: left 1.6s var(--ease-out); }
+.boot .sleeve.l .plate, .boot .sleeve.l .collar { animation: slide-l .7s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+.boot .sleeve.r .plate, .boot .sleeve.r .collar { animation: slide-r .7s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+.boot .sleeve .p1 { animation-delay: .45s !important; }
+.boot .sleeve .p2 { animation-delay: .6s !important; }
+.boot .sleeve .collar { animation-delay: .75s !important; }
+@keyframes slide-l { from { transform: translateX(-70px); opacity: 0; } }
+@keyframes slide-r { from { transform: translateX(70px); opacity: 0; } }
+.bar-caption { display: flex; justify-content: space-between; gap: 12px; margin: 10px 0 0; font-size: 13px; color: var(--dust); }
+
+/* today action */
+.cta { margin-top: 40px; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.cta-note { margin: 0; color: var(--dust); font-size: 14px; max-width: 36ch; }
+.stamp { display: inline-flex; align-items: center; gap: 12px; padding: 16px 24px; border-radius: 14px; font-weight: 800; font-stretch: 112%; font-size: 21px; border: 2px solid var(--line-2); }
+.stamp.ok { color: var(--go); border-color: color-mix(in srgb, var(--go) 60%, transparent); box-shadow: 0 0 30px -10px var(--go); }
+.stamp svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.spot strong { display: block; font-stretch: 115%; font-weight: 800; font-size: 26px; }
+.spot span { color: var(--dust); }
+
+/* calendar */
+.cal { margin-top: 64px; }
+.cal h2 { margin: 0; font-stretch: 125%; font-weight: 900; font-size: 32px; letter-spacing: -.02em; }
+.cal-sub { margin: 6px 0 20px; color: var(--dust); max-width: 56ch; }
+.grid { display: grid; gap: 6px; }
+.row {
+  position: relative; display: grid; grid-template-columns: 84px repeat(7, minmax(0, 1fr)) 70px 104px;
+  gap: 6px; align-items: center; padding: 6px 8px; border-radius: 12px; border: 1px solid transparent;
+  transition: background .5s, border-color .5s, box-shadow .5s, opacity .5s;
+}
+.row.head { padding-top: 0; padding-bottom: 0; font-size: 12px; color: var(--dust); text-align: center; }
+.row.head .lh { text-align: center; }
+.wk { line-height: 1.15; }
+.wk b { display: block; font-stretch: 115%; font-weight: 800; font-size: 15px; }
+.wk span { font-size: 12px; color: var(--dust); }
+.row[data-status="upcoming"] .wk, .row[data-status="upcoming"] .vt { opacity: .7; }
+.row[data-status="live"] { border-color: var(--line-2); background: rgba(255, 255, 255, .025); }
+.row[data-status="good"] { background: linear-gradient(90deg, rgba(61, 255, 122, .15), rgba(61, 255, 122, .03)); border-color: rgba(61, 255, 122, .5); box-shadow: 0 0 34px -12px rgba(61, 255, 122, .6); }
+.row[data-status="broken"] { background: linear-gradient(90deg, rgba(255, 51, 70, .18), rgba(255, 51, 70, .03)); border-color: rgba(255, 51, 70, .55); box-shadow: 0 0 34px -12px rgba(255, 51, 70, .65); }
+.row[data-status="broken"]::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: .5; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
+  animation: static .25s steps(3) infinite;
+}
+@keyframes static { 33% { background-position: 40px 17px; } 66% { background-position: -23px 61px; } }
+.row.sweep::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, rgba(61, 255, 122, .55) 50%, transparent 70%) no-repeat;
+  background-size: 250% 100%; animation: rowsweep 1.1s var(--ease-out) both;
+}
+@keyframes rowsweep { from { background-position: 160% 0; } to { background-position: -60% 0; } }
+.boot .row:not(.head) { animation: rack .6s var(--ease-out) backwards; animation-delay: calc(var(--i) * 45ms + .55s); }
+@keyframes rack { from { opacity: 0; transform: translateX(-46px) skewX(-10deg); } }
+
+.day {
+  position: relative; aspect-ratio: 1; border-radius: 8px; display: grid; place-items: center;
+  background: rgba(255, 255, 255, .04); border: 1px solid rgba(242, 240, 234, .13); color: #a9abaf; font-size: 12px;
+  transition: background .3s, border-color .3s;
+}
+.day .n { position: absolute; top: 5px; left: 7px; font-variant-numeric: tabular-nums; }
+.day .mo { position: absolute; bottom: 4px; right: 6px; font-size: 10px; }
+.day .tag { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 10px; font-weight: 700; color: var(--chalk); }
+.day .chk { width: 62%; height: 62%; opacity: 0; }
+.day .chk path { fill: none; stroke: var(--chalk); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 100; }
+.day[data-st="future"] { opacity: .6; }
+.day[data-st="today"] .mo { display: none; }
+.day[data-st="missed"]::after { content: ""; position: absolute; inset: 24%; background: linear-gradient(135deg, transparent calc(50% - 1px), rgba(242, 240, 234, .28) 50%, transparent calc(50% + 1px)); }
+.day[data-st="done"] { background: rgba(255, 255, 255, .1); border-color: rgba(242, 240, 234, .38); color: var(--chalk); }
+.day[data-st="done"] .chk { opacity: 1; }
+.day.fresh .chk path { animation: draw .55s var(--ease-out) .05s backwards; }
+@keyframes draw { from { stroke-dashoffset: 100; } }
+.day.fresh { animation: slam .5s cubic-bezier(.3, 1.8, .5, 1); }
+@keyframes slam { 0% { transform: scale(1.35); } 100% { transform: none; } }
+.day[data-st="today"] { border-color: var(--chalk); color: var(--chalk); box-shadow: 0 0 0 1px var(--chalk), 0 0 22px -4px rgba(242, 240, 234, .55); animation: breathe 2.4s ease-in-out infinite; }
+.day.can { cursor: pointer; }
+.day.can:hover { background: rgba(61, 255, 122, .12); border-color: var(--go); }
+@keyframes breathe { 50% { box-shadow: 0 0 0 1px var(--chalk), 0 0 34px -2px rgba(242, 240, 234, .75); } }
+.day.pending::before {
+  content: ""; position: absolute; left: 18%; right: 18%; bottom: 22%; height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--go), transparent) 0 0 / 200% 100%; box-shadow: 0 0 8px var(--go);
+  animation: load .8s linear infinite;
+}
+@keyframes load { to { background-position: -200% 0; } }
+
+.lights { display: flex; gap: 7px; justify-content: center; align-items: center; }
+.lt { width: 14px; height: 14px; border-radius: 50%; background: #2a2b2f; box-shadow: inset 0 2px 3px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 255, 255, .05); transition: background .3s, box-shadow .3s; }
+.lt.w { background: var(--judge); box-shadow: 0 0 10px rgba(255, 253, 245, .85); }
+.lt.g { background: var(--go); box-shadow: 0 0 12px var(--go); }
+.lt.r { background: var(--bad); box-shadow: 0 0 12px var(--bad); }
+.boot .lt { animation: lttest .5s steps(1) backwards; animation-delay: calc(var(--i) * 45ms + 1.05s); }
+@keyframes lttest { 0% { background: var(--judge); box-shadow: 0 0 10px #fff; } }
+.xtra { font-size: 11px; color: var(--go); font-weight: 700; margin-left: 2px; }
+.vt { font-size: 13px; font-weight: 700; }
+.row[data-status="good"] .vt { color: var(--go); }
+.row[data-status="broken"] .vt { color: #ff6b78; }
+.row[data-status="live"] .vt, .row[data-status="upcoming"] .vt { color: var(--dust); font-weight: 600; }
+.legend { margin: 16px 0 0; font-size: 13px; color: var(--dust); max-width: 70ch; }
+
+/* money */
+.money { margin-top: 64px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; border-top: 1px solid var(--line); }
+.money > div { min-width: 0; padding: 26px 26px 0 0; }
+.money > div + div { padding-left: 26px; border-left: 1px solid var(--line); }
+.money h3 { margin: 0; font-stretch: 118%; font-weight: 800; font-size: 20px; }
+.m-note { margin: 6px 0 16px; color: var(--dust); font-size: 14px; max-width: 40ch; }
+.field { display: flex; gap: 8px; }
+.field input {
+  flex: 1; width: 0; min-width: 0; padding: 13px 14px; border-radius: 10px; font-size: 16px;
+  background: rgba(0, 0, 0, .35); border: 1px solid var(--line-2); font-variant-numeric: tabular-nums;
+}
+
+.foot { margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line); font-size: 13px; color: var(--dust); display: grid; gap: 8px; }
+.foot p { margin: 0; max-width: 72ch; }
+.foot a { color: var(--chalk); }
+
+/* create */
+.create { position: relative; z-index: 2; max-width: 560px; margin: 0 auto; padding: 70px 22px 100px; }
+.create .wordmark { font-size: clamp(44px, 13vw, 84px); }
+.create h2 { margin: 34px 0 6px; font-stretch: 118%; font-weight: 800; font-size: 26px; }
+.create label { display: block; margin: 22px 0 8px; font-size: 14px; color: var(--dust); }
+.create .m-note { margin-bottom: 0; }
+.create hr { border: 0; border-top: 1px solid var(--line); margin: 34px 0 0; }
+
+/* overlays */
+.verdict {
+  position: fixed; inset: 0; z-index: 70; display: grid; place-content: center; justify-items: center; gap: 22px;
+  padding: 24px; text-align: center; background: radial-gradient(circle at 50% 45%, rgba(18, 20, 22, .82), rgba(6, 6, 7, .97));
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.verdict.bad { --led: var(--bad); background: radial-gradient(circle at 50% 45%, rgba(110, 6, 16, .72), rgba(8, 2, 3, .97)); }
+.verdict.good { --led: var(--go); }
+.verdict::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: rgba(255, 40, 60, .35); opacity: 0; }
+.verdict.bad.go::before { animation: flash .5s steps(1) 4; }
+@keyframes flash { 0% { opacity: 1; } 50% { opacity: 0; } }
+.v-lights { display: flex; gap: clamp(14px, 4vw, 30px); }
+.v-lights i { width: clamp(56px, 15vw, 100px); aspect-ratio: 1; border-radius: 50%; background: #222327; box-shadow: inset 0 6px 14px rgba(0, 0, 0, .75); }
+.verdict.go .v-lights i { animation: vlight .5s cubic-bezier(.2, 1.6, .4, 1) backwards; animation-delay: calc(var(--i) * .22s + .1s); }
+.verdict.bad.go .v-lights i { background: var(--bad); box-shadow: 0 0 50px var(--bad), 0 0 120px rgba(255, 51, 70, .55), inset 0 -8px 14px rgba(0, 0, 0, .3); }
+.verdict.good.go .v-lights i { background: var(--go); box-shadow: 0 0 50px var(--go), 0 0 120px rgba(61, 255, 122, .5), inset 0 -8px 14px rgba(0, 0, 0, .25); }
+@keyframes vlight { from { transform: scale(1.9); opacity: 0; filter: blur(10px); } }
+.v-led { --dh: clamp(54px, 13vw, 116px); }
+.verdict h2 { position: relative; margin: 0; font-stretch: 125%; font-weight: 900; font-size: clamp(36px, 8vw, 68px); letter-spacing: -.025em; line-height: 1; }
+.verdict p { position: relative; margin: 0; max-width: 44ch; color: #e2dfd6; font-size: 18px; }
+.verdict .btn { position: relative; }
+
+.modal { position: fixed; inset: 0; z-index: 75; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, .65); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.modal-box { width: min(100%, 440px); padding: 26px; border-radius: 16px; background: #131416; border: 1px solid var(--line-2); box-shadow: 0 40px 80px -20px #000; }
+.modal-box h2 { margin: 0; font-stretch: 118%; font-weight: 800; font-size: 24px; }
+.modal-box p { margin: 10px 0 22px; color: #cfccc3; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 22px; z-index: 90; max-width: min(92vw, 520px);
+  padding: 12px 18px 12px 34px; border-radius: 999px; font-size: 14px;
+  background: #0d0e0f; border: 1px solid var(--line-2); box-shadow: 0 20px 40px -10px #000;
+  transform: translate(-50%, 140%); opacity: 0; transition: transform .45s var(--ease-out), opacity .3s;
+}
+.toast::before { content: ""; position: absolute; left: 14px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: #ffb020; box-shadow: 0 0 8px #ffb020; }
+.toast.ok::before { background: var(--go); box-shadow: 0 0 8px var(--go); }
+.toast.bad::before { background: var(--bad); box-shadow: 0 0 8px var(--bad); }
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+.shake { animation: shake .45s cubic-bezier(.36, .07, .19, .97); }
+.shake-hard { animation: shake-hard .7s cubic-bezier(.36, .07, .19, .97); }
+@keyframes shake { 20% { transform: translate(-4px, 2px); } 40% { transform: translate(5px, -3px); } 60% { transform: translate(-3px, 3px); } 80% { transform: translate(2px, -1px); } }
+@keyframes shake-hard { 10% { transform: translate(-10px, 4px) rotate(-.6deg); } 25% { transform: translate(12px, -6px) rotate(.6deg); } 40% { transform: translate(-9px, 6px); } 55% { transform: translate(7px, -4px); } 70% { transform: translate(-4px, 3px); } 85% { transform: translate(2px, -1px); } }
+
+@media (max-width: 640px) {
+  #app { padding: 14px 14px 100px; }
+  .panel { --dh-main: min(80px, calc((100vw - 72px) / 7.2)); padding: 20px 18px 14px; }
+  .row.head .lh { display: none; }
+  .led-week { display: none; }
+  .stakes { grid-template-columns: 1fr 1fr; }
+  .stakes > div:first-child { grid-column: 1 / -1; }
+  .row { grid-template-columns: 26px repeat(7, minmax(0, 1fr)) 38px; gap: 4px; padding: 4px; }
+  .vt, .row.head .vh { display: none; }
+  .wk span { display: none; }
+  .wk b { font-size: 13px; text-align: center; }
+  .lights { gap: 3px; }
+  .lt { width: 9px; height: 9px; }
+  .xtra { display: none; }
+  .day { border-radius: 6px; font-size: 10px; }
+  .day .n { top: 2px; left: 4px; }
+  .day .mo, .day .tag { font-size: 8px; bottom: 2px; }
+  .money { grid-template-columns: minmax(0, 1fr); }
+  .money > div { padding-right: 0; }
+  .money > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); margin-top: 26px; }
+  .btn.big { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .panel { transform: none !important; }
+}
 </style>
 </head>
 <body>
-<main>
-  <h1>GymPact</h1>
-  <p class="sub">Gym 3× a week for 90 days — or my friend takes the USDC.</p>
-  <button id="connect">Connect wallet</button>
-  <p id="account" class="mut"></p>
+<canvas id="dust" aria-hidden="true"></canvas>
+<div id="beam" aria-hidden="true"></div>
 
-  <section id="deploySec" hidden>
-    <h2>Create the pact</h2>
-    <label>Friend's wallet address<input id="friendIn" placeholder="0x…" autocomplete="off"></label>
-    <button id="deployBtn">Deploy contract</button>
-    <p class="mut" style="margin:18px 0 6px">Already have one?</p>
-    <label>Contract address<input id="existingIn" placeholder="0x…" autocomplete="off"></label>
-    <button id="openBtn">Open</button>
+<button id="soundBtn" class="sound" aria-pressed="true" aria-label="Sound effects">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path class="w" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M17 9l5 6M22 9l-5 6"/></svg>
+</button>
+
+<section id="gate" class="gate" aria-label="Scan in">
+  <div class="shutter" aria-hidden="true"></div>
+  <div class="gate-inner">
+    <h1 class="wordmark glint">GymPact</h1>
+    <p class="gate-line">Members only. Scan in with a wallet that's on this pact.</p>
+    <div id="reader" class="reader">
+      <div id="readerLed" class="led reader-led" aria-hidden="true"></div>
+      <div class="reader-pad">
+        <svg class="nfc" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 15c4 5.5 4 12.5 0 18"/><path d="M23 10c6.5 8.5 6.5 19.5 0 28"/><path d="M30 5c9 11.5 9 26.5 0 38"/></svg>
+        <div class="card" aria-hidden="true"><span class="card-brand">GymPact</span><span class="card-chip"></span><span id="cardAddr" class="card-addr">Member</span></div>
+        <div class="laser"></div>
+      </div>
+      <div class="reader-lights" aria-hidden="true"><i class="rl r"></i><i class="rl g"></i></div>
+    </div>
+    <button id="scanBtn" class="btn big">Scan in</button>
+    <p id="gateMsg" class="gate-msg" role="status"></p>
+    <p id="walletLinks" class="wallet-links" hidden></p>
+    <button id="newLink" class="link">Start a new pact</button>
+  </div>
+</section>
+
+<main id="app" hidden>
+  <div class="topbar"><span id="roleChip" class="chip"></span></div>
+  <header class="mast">
+    <h1 id="wordmark" class="wordmark">GymPact</h1>
+    <p id="pledge" class="pledge"></p>
+  </header>
+  <div id="banner" class="banner" role="status" hidden></div>
+
+  <section id="panel" class="panel" aria-label="Countdown">
+    <i class="screw" style="top:10px;left:10px;--sr:25deg"></i>
+    <i class="screw" style="top:10px;right:10px;--sr:-40deg"></i>
+    <i class="screw" style="bottom:10px;left:10px;--sr:80deg"></i>
+    <i class="screw" style="bottom:10px;right:10px;--sr:10deg"></i>
+    <div class="panel-row">
+      <div id="weekLed" class="led led-week" aria-hidden="true"></div>
+      <div id="mainLed" class="led led-main" role="timer"></div>
+    </div>
+    <p id="panelCaption" class="panel-caption"></p>
   </section>
 
-  <section id="statusSec" hidden>
-    <h2>The pact</h2>
-    <dl>
-      <dt>Locked</dt><dd id="locked">–</dd>
-      <dt>Time left</dt><dd id="left">–</dd>
-      <dt>Unlocks</dt><dd id="unlock">–</dd>
-      <dt>Gym-goer</dt><dd id="meAddr">–</dd>
-      <dt>Friend</dt><dd id="friendAddr">–</dd>
-      <dt>Contract</dt><dd id="pactAddr">–</dd>
-    </dl>
+  <dl class="stakes">
+    <div><dt>On the line</dt><dd><span id="lockedAmt" class="amount">0.00<small>USDC</small></span></dd></div>
+    <div><dt>Gym-goer</dt><dd id="meCell"></dd></div>
+    <div><dt>Friend</dt><dd id="friendCell"></dd></div>
+  </dl>
+
+  <div id="barbell" class="barbell" aria-hidden="true">
+    <div class="sleeve l"><i class="end"></i><i class="plate p1"></i><i class="plate p2"></i><i class="collar"></i></div>
+    <div class="shaft"><div id="barFill" class="fill"></div><div id="barMark" class="marker"></div></div>
+    <div class="sleeve r"><i class="collar"></i><i class="plate p2"></i><i class="plate p1"></i><i class="end"></i></div>
+  </div>
+  <p class="bar-caption"><span id="barDays"></span><span id="barEnd"></span></p>
+
+  <section id="cta" class="cta" aria-live="polite"></section>
+
+  <section class="cal" aria-labelledby="calTitle">
+    <h2 id="calTitle">The calendar</h2>
+    <p id="calSub" class="cal-sub"></p>
+    <div id="cal" class="grid"></div>
+    <p class="legend">One light per session. Three lit turns the week green. A week that can't reach three turns red.</p>
   </section>
 
-  <section id="depositSec" hidden>
-    <h2>Deposit USDC</h2>
-    <label>Amount (you have <span id="bal">–</span> USDC)<input id="amountIn" inputmode="decimal" placeholder="100"></label>
-    <button id="depositBtn">Deposit</button>
-  </section>
-
-  <section id="failSec" hidden>
-    <h2>They skipped the gym?</h2>
-    <p class="mut">Sends all locked USDC to your wallet. This cannot be undone.</p>
-    <button id="failBtn" class="bad">They failed — claim the USDC</button>
-  </section>
-
-  <section id="withdrawSec" hidden>
-    <h2>Made it?</h2>
-    <p class="mut">Available once the 90 days and the 3-day grace period are over.</p>
-    <button id="withdrawBtn">Withdraw my USDC</button>
-  </section>
-
-  <p id="msg"></p>
+  <section id="money" class="money"></section>
+  <footer id="foot" class="foot"></footer>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<section id="create" class="create" hidden>
+  <h1 class="wordmark">GymPact</h1>
+  <h2>Start a new pact</h2>
+  <p class="m-note">Your 90 days start the moment the contract confirms. Then deposit the USDC you're putting on the line.</p>
+  <label for="friendIn">Friend's wallet address</label>
+  <div class="field"><input id="friendIn" placeholder="0x…" autocomplete="off" spellcheck="false"><button id="deployBtn" class="btn">Deploy pact</button></div>
+  <p class="m-note">Check every character. The friend can't be changed after this.</p>
+  <hr>
+  <label for="existingIn">Open a pact by its address</label>
+  <div class="field"><input id="existingIn" placeholder="0x…" autocomplete="off" spellcheck="false"><button id="openBtn" class="btn ghost">Open</button></div>
+  <p><button id="backBtn" class="link">Back</button></p>
+</section>
+
+<div id="verdict" class="verdict" hidden>
+  <div class="v-lights" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i></div>
+  <div id="verdictLed" class="led v-led" aria-hidden="true"></div>
+  <h2 id="verdictTitle"></h2>
+  <p id="verdictText"></p>
+  <button id="verdictBtn" class="btn ghost">Got it</button>
+</div>
+
+<div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+  <div class="modal-box">
+    <h2 id="modalTitle"></h2>
+    <p id="modalText"></p>
+    <div class="modal-actions"><button id="modalCancel" class="btn ghost">Cancel</button><button id="modalOk" class="btn"></button></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js" integrity="sha384-6Zl0Pc8zjSz8KvmNeXRvUQgY4ryFb+BwDvKCmLYcBME0joAaru491tQgi9B7zsMM" crossorigin="anonymous"></script>
 <script>
+(() => {
+"use strict";
+
+/* ===== Contracts ===== */
 const BASE_ID = 8453, BASE_HEX = "0x2105";
 const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const DEFAULT_PACT = "0x68Ca36cc6465592BD11e5d65083850D9e162D012";
 const BYTECODE = "0x60e060405234801561000f575f80fd5b506040516112de3803806112de833981810160405281019061003191906101ef565b5f73ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff160361009f576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161009690610274565b60405180910390fd5b3373ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff160361010d576040517f08c379a0000000000000000000000000000000000000000000000000000000008152600401610104906102dc565b60405180910390fd5b3373ffffffffffffffffffffffffffffffffffffffff1660808173ffffffffffffffffffffffffffffffffffffffff16815250508073ffffffffffffffffffffffffffffffffffffffff1660a08173ffffffffffffffffffffffffffffffffffffffff16815250506276a700426101849190610330565b60c0818152505050610363565b5f80fd5b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f6101be82610195565b9050919050565b6101ce816101b4565b81146101d8575f80fd5b50565b5f815190506101e9816101c5565b92915050565b5f6020828403121561020457610203610191565b5b5f610211848285016101db565b91505092915050565b5f82825260208201905092915050565b7f667269656e64206973207a65726f2061646472657373000000000000000000005f82015250565b5f61025e60168361021a565b91506102698261022a565b602082019050919050565b5f6020820190508181035f83015261028b81610252565b9050919050565b7f667269656e642063616e6e6f7420626520796f750000000000000000000000005f82015250565b5f6102c660148361021a565b91506102d182610292565b602082019050919050565b5f6020820190508181035f8301526102f3816102ba565b9050919050565b5f819050919050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f61033a826102fa565b9150610345836102fa565b925082820190508082111561035d5761035c610303565b5b92915050565b60805160a05160c051610f126103cc5f395f81816101a6015281816101d0015281816102c9015261063301525f818161057d015281816105a1015281816107a1015261085f01525f818161023701528181610436015281816104f401526108d00152610f125ff3fe608060405234801561000f575f80fd5b506004361061009c575f3560e01c806389a302711161006457806389a3027114610122578063901e422914610140578063a9cc47181461015e578063cb12b48f14610168578063cf309012146101865761009c565b80630a09284a146100a05780631300a6d1146100be578063137d29d9146100dc5780631be05289146100fa5780633ccfd60b14610118575b5f80fd5b6100a86101a4565b6040516100b5919061099c565b60405180910390f35b6100c66101c8565b6040516100d3919061099c565b60405180910390f35b6100e4610227565b6040516100f1919061099c565b60405180910390f35b61010261022e565b60405161010f919061099c565b60405180910390f35b610120610235565b005b61012a610563565b6040516101379190610a2f565b60405180910390f35b61014861057b565b6040516101559190610a68565b60405180910390f35b61016661059f565b005b6101706108ce565b60405161017d9190610a68565b60405180910390f35b61018e6108f2565b60405161019b919061099c565b60405180910390f35b7f000000000000000000000000000000000000000000000000000000000000000081565b5f806203f4807f00000000000000000000000000000000000000000000000000000000000000006101f99190610aae565b905080421161021f57600142826102109190610ae1565b61021a9190610aae565b610221565b5f5b91505090565b6203f48081565b6276a70081565b7f000000000000000000000000000000000000000000000000000000000000000073ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146102c3576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016102ba90610b6e565b60405180910390fd5b6203f4807f00000000000000000000000000000000000000000000000000000000000000006102f29190610aae565b4211610333576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161032a90610bd6565b60405180910390fd5b5f73833589fcd6edb6e08f4c7c32d4f71b54bda0291373ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff1660e01b81526004016103819190610a68565b602060405180830381865afa15801561039c573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906103c09190610c22565b90505f8111610404576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016103fb90610c97565b60405180910390fd5b73833589fcd6edb6e08f4c7c32d4f71b54bda0291373ffffffffffffffffffffffffffffffffffffffff1663a9059cbb7f0000000000000000000000000000000000000000000000000000000000000000836040518363ffffffff1660e01b8152600401610473929190610cb5565b6020604051808303815f875af115801561048f573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906104b39190610d11565b6104f2576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016104e990610d86565b60405180910390fd5b7f000000000000000000000000000000000000000000000000000000000000000073ffffffffffffffffffffffffffffffffffffffff167f9ae36d545514bf1e12f2c7e16c6f07e049946c2925b6cc3d50c28edbfcfe663682604051610558919061099c565b60405180910390a250565b73833589fcd6edb6e08f4c7c32d4f71b54bda0291381565b7f000000000000000000000000000000000000000000000000000000000000000081565b7f000000000000000000000000000000000000000000000000000000000000000073ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161461062d576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161062490610dee565b60405180910390fd5b6203f4807f000000000000000000000000000000000000000000000000000000000000000061065c9190610aae565b42111561069e576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161069590610e56565b60405180910390fd5b5f73833589fcd6edb6e08f4c7c32d4f71b54bda0291373ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff1660e01b81526004016106ec9190610a68565b602060405180830381865afa158015610707573d5f803e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061072b9190610c22565b90505f811161076f576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161076690610ebe565b60405180910390fd5b73833589fcd6edb6e08f4c7c32d4f71b54bda0291373ffffffffffffffffffffffffffffffffffffffff1663a9059cbb7f0000000000000000000000000000000000000000000000000000000000000000836040518363ffffffff1660e01b81526004016107de929190610cb5565b6020604051808303815f875af11580156107fa573d5f803e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061081e9190610d11565b61085d576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161085490610d86565b60405180910390fd5b7f000000000000000000000000000000000000000000000000000000000000000073ffffffffffffffffffffffffffffffffffffffff167f325cf12a5a810dd6b21d7aedc0fc5e08fc623604ee1d61fdba2a60e7719f6462826040516108c3919061099c565b60405180910390a250565b7f000000000000000000000000000000000000000000000000000000000000000081565b5f73833589fcd6edb6e08f4c7c32d4f71b54bda0291373ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff1660e01b81526004016109409190610a68565b602060405180830381865afa15801561095b573d5f803e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061097f9190610c22565b905090565b5f819050919050565b61099681610984565b82525050565b5f6020820190506109af5f83018461098d565b92915050565b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f819050919050565b5f6109f76109f26109ed846109b5565b6109d4565b6109b5565b9050919050565b5f610a08826109dd565b9050919050565b5f610a19826109fe565b9050919050565b610a2981610a0f565b82525050565b5f602082019050610a425f830184610a20565b92915050565b5f610a52826109b5565b9050919050565b610a6281610a48565b82525050565b5f602082019050610a7b5f830184610a59565b92915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f610ab882610984565b9150610ac383610984565b9250828201905080821115610adb57610ada610a81565b5b92915050565b5f610aeb82610984565b9150610af683610984565b9250828203905081811115610b0e57610b0d610a81565b5b92915050565b5f82825260208201905092915050565b7f6f6e6c79206d65000000000000000000000000000000000000000000000000005f82015250565b5f610b58600783610b14565b9150610b6382610b24565b602082019050919050565b5f6020820190508181035f830152610b8581610b4c565b9050919050565b7f70616374207374696c6c2072756e6e696e6700000000000000000000000000005f82015250565b5f610bc0601283610b14565b9150610bcb82610b8c565b602082019050919050565b5f6020820190508181035f830152610bed81610bb4565b9050919050565b5f80fd5b610c0181610984565b8114610c0b575f80fd5b50565b5f81519050610c1c81610bf8565b92915050565b5f60208284031215610c3757610c36610bf4565b5b5f610c4484828501610c0e565b91505092915050565b7f6e6f7468696e6720746f207769746864726177000000000000000000000000005f82015250565b5f610c81601383610b14565b9150610c8c82610c4d565b602082019050919050565b5f6020820190508181035f830152610cae81610c75565b9050919050565b5f604082019050610cc85f830185610a59565b610cd5602083018461098d565b9392505050565b5f8115159050919050565b610cf081610cdc565b8114610cfa575f80fd5b50565b5f81519050610d0b81610ce7565b92915050565b5f60208284031215610d2657610d25610bf4565b5b5f610d3384828501610cfd565b91505092915050565b7f7472616e73666572206661696c656400000000000000000000000000000000005f82015250565b5f610d70600f83610b14565b9150610d7b82610d3c565b602082019050919050565b5f6020820190508181035f830152610d9d81610d64565b9050919050565b7f6f6e6c7920667269656e640000000000000000000000000000000000000000005f82015250565b5f610dd8600b83610b14565b9150610de382610da4565b602082019050919050565b5f6020820190508181035f830152610e0581610dcc565b9050919050565b7f746f6f206c6174652c207061637420636f6d706c6574656400000000000000005f82015250565b5f610e40601883610b14565b9150610e4b82610e0c565b602082019050919050565b5f6020820190508181035f830152610e6d81610e34565b9050919050565b7f6e6f7468696e6720746f20636c61696d000000000000000000000000000000005f82015250565b5f610ea8601083610b14565b9150610eb382610e74565b602082019050919050565b5f6020820190508181035f830152610ed581610e9c565b905091905056fea264697066735822122098d2851ad8614e40fc7eaac95f58dc6e48a9841aac5889ce9ff7642c331a29df64736f6c634300081a0033";
 const PACT_ABI = [
   "constructor(address _friend)",
@@ -85,7 +564,6 @@ const PACT_ABI = [
   "function friend() view returns (address)",
   "function endsAt() view returns (uint256)",
   "function locked() view returns (uint256)",
-  "function timeLeft() view returns (uint256)",
   "function fail()",
   "function withdraw()"
 ];
@@ -93,142 +571,873 @@ const USDC_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function transfer(address,uint256) returns (bool)"
 ];
+// GymLog (see GymLog.sol): one shared check-in calendar for every pact, installed at a fixed
+// address through the standard CREATE2 deployer that ships with Base.
+const LOG_ADDR = "0x2BF7b4eD085e1F501d8E86B9D43462ac3695A752";
+const CREATE2_PROXY = "0x4e59b44847b379578588920cA78FbF26c0B4956C";
+const LOG_SALT = "0x46d1ae79adda6999c276867b1225103b52a33d94aac09fbfc746bd25bc3e7502";
+const LOG_INITCODE = "0x6080604052348015600e575f80fd5b506104b88061001c5f395ff3fe608060405234801561000f575f80fd5b5060043610610060575f3560e01c80631acc9b62146100645780631be0528914610095578063375902641461009f578063ac338b7c146100a8578063d9a59e33146100bb578063f1a8de59146100d0575b5f80fd5b6100836100723660046103d9565b5f6020819052908152604090205481565b60405190815260200160405180910390f35b6100836276a70081565b61008361465081565b6100836100b63660046103d9565b6100e3565b6100ce6100c93660046103d9565b61016e565b005b6100836100de3660046103fb565b6103a7565b5f6101556276a700836001600160a01b0316630a09284a6040518163ffffffff1660e01b8152600401602060405180830381865afa158015610127573d5f803e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061014b9190610412565b6100de9190610429565b61015e426103a7565b6101689190610429565b92915050565b806001600160a01b031663cb12b48f6040518163ffffffff1660e01b8152600401602060405180830381865afa1580156101aa573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906101ce9190610448565b6001600160a01b0316336001600160a01b0316146102275760405162461bcd60e51b815260206004820152601160248201527037b7363c903a34329033bcb696b3b7b2b960791b60448201526064015b60405180910390fd5b5f816001600160a01b0316630a09284a6040518163ffffffff1660e01b8152600401602060405180830381865afa158015610264573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906102889190610412565b9050804211156102c95760405162461bcd60e51b815260206004820152600c60248201526b3830b1ba1034b99037bb32b960a11b604482015260640161021e565b5f6102da6100de6276a70084610429565b6102e3426103a7565b6102ed9190610429565b6001600160a01b0384165f908152602081905260409020549091506001821b9081161561035c5760405162461bcd60e51b815260206004820152601860248201527f616c726561647920636865636b656420696e20746f6461790000000000000000604482015260640161021e565b6001600160a01b0384165f81815260208190526040808220805485179055518492917fdddb6e14f7f2101397a6526aab95e964de7f1f44ed06aa47a1c9a0e6b992445691a350505050565b5f620151806103b861465084610429565b6101689190610463565b6001600160a01b03811681146103d6575f80fd5b50565b5f602082840312156103e9575f80fd5b81356103f4816103c2565b9392505050565b5f6020828403121561040b575f80fd5b5035919050565b5f60208284031215610422575f80fd5b5051919050565b8181038181111561016857634e487b7160e01b5f52601160045260245ffd5b5f60208284031215610458575f80fd5b81516103f4816103c2565b5f8261047d57634e487b7160e01b5f52601260045260245ffd5b50049056fea2646970667358221220aaf15bfd71089f9b91dbd702ac60dc85732ed83c9b827a838774245dc5b939bf64736f6c634300081a0033";
+const LOG_ABI = ["function checkIns(address) view returns (uint256)", "function checkIn(address)"];
 
+const DAY = 86400, TZ_SHIFT = 5 * 3600, DURATION = 90 * DAY, GRACE = 3 * DAY, NDAYS = 91, NWEEKS = 13;
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const FINE = matchMedia("(pointer: fine)").matches;
+
+/* ===== Helpers ===== */
 const $ = id => document.getElementById(id);
-const readProvider = new ethers.JsonRpcProvider("https://mainnet.base.org", BASE_ID, { staticNetwork: true });
-let signer = null, account = null, pactAddr = loadAddr();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const p2 = n => String(n).padStart(2, "0");
+const short = a => a ? a.slice(0, 6) + "…" + a.slice(-4) : "";
+const same = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} }
+};
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const dayOf = ts => Math.floor((ts - TZ_SHIFT) / DAY);       // calendar day number, Toronto time
+const dateOf = dn => new Date(dn * DAY * 1000);               // read with getUTC* for the Toronto date
+const fmtDay = dn => { const d = dateOf(dn); return MON[d.getUTCMonth()] + " " + d.getUTCDate(); };
+const fmtWhen = ts => new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(ts * 1000));
+const fmtUSDC = v => Number(ethers.formatUnits(v, 6)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const bit = (bits, d) => ((bits >> BigInt(d)) & 1n) === 1n;
 
+const REASONS = {
+  "only the gym-goer": "Only the gym-goer's wallet can check in.",
+  "already checked in today": "You've already checked in today.",
+  "pact is over": "The 90 days are over.",
+  "only friend": "Only the friend's wallet can claim.",
+  "only me": "Only the gym-goer's wallet can withdraw.",
+  "too late, pact completed": "The claim window has closed.",
+  "nothing to claim": "There's no USDC in the pact.",
+  "pact still running": "The USDC is still locked.",
+  "nothing to withdraw": "There's no USDC to withdraw.",
+  "friend is zero address": "That friend address isn't valid.",
+  "friend cannot be you": "Your friend's address can't be your own."
+};
+function errText(e) {
+  const m = (e && (e.reason || e.shortMessage || e.message)) || String(e);
+  if (e && (e.code === "ACTION_REJECTED" || e.code === 4001 || (e.info && e.info.error && e.info.error.code === 4001))) return "Cancelled in your wallet.";
+  if (/user (rejected|denied)/i.test(m)) return "Cancelled in your wallet.";
+  if (/insufficient funds/i.test(m)) return "Not enough ETH on Base to pay the network fee.";
+  const clean = m.replace(/^execution reverted:?\s*/i, "").replace(/^"|"$/g, "");
+  return REASONS[clean] || clean;
+}
+
+/* ===== Rubber floor texture ===== */
+(function floor() {
+  const c = document.createElement("canvas"); c.width = c.height = 240;
+  const g = c.getContext("2d");
+  g.fillStyle = "#18191b"; g.fillRect(0, 0, 240, 240);
+  for (let i = 0; i < 2600; i++) {
+    const v = 30 + Math.random() * 30 | 0;
+    g.fillStyle = `rgba(${v},${v + 1},${v + 3},${.35 + Math.random() * .5})`;
+    const s = Math.random() < .85 ? 1 : 2;
+    g.fillRect(Math.random() * 240 | 0, Math.random() * 240 | 0, s, s);
+  }
+  for (let i = 0; i < 70; i++) {
+    g.fillStyle = Math.random() < .5 ? "rgba(70,98,160,.55)" : "rgba(125,128,134,.5)";
+    g.fillRect(Math.random() * 240 | 0, Math.random() * 240 | 0, 1 + (Math.random() < .3), 1 + (Math.random() < .3));
+  }
+  document.documentElement.style.setProperty("--floor", `url(${c.toDataURL()})`);
+})();
+
+/* ===== Chalk dust in the light beam ===== */
+const Dust = (() => {
+  const cv = $("dust"), ctx = cv.getContext("2d");
+  let W = 0, H = 0, parts = [], fx = [], mx = -9999, my = -9999, running = false, last = 0;
+  const sprite = (() => {
+    const s = document.createElement("canvas"); s.width = s.height = 64;
+    const g = s.getContext("2d"), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    r.addColorStop(0, "rgba(255,252,240,1)"); r.addColorStop(.3, "rgba(255,252,240,.45)"); r.addColorStop(1, "rgba(255,252,240,0)");
+    g.fillStyle = r; g.fillRect(0, 0, 64, 64); return s;
+  })();
+  const SN = Math.sin(14 * Math.PI / 180), CS = Math.cos(14 * Math.PI / 180);
+  const beam = (x, y) => { const d = (x - W / 2) * CS + (y - H * .6) * SN, s = Math.max(150, W * .15); return Math.exp(-(d * d) / (2 * s * s)); };
+  const mk = anywhere => {
+    const z = .15 + Math.pow(Math.random(), 1.5) * .85;
+    return { x: Math.random() * W, y: anywhere ? Math.random() * H : H + 12, z,
+      vx: (Math.random() - .5) * .12, vy: -(.04 + Math.random() * .16) * (.4 + z), a: .25 + Math.random() * .55, ph: Math.random() * 6.283 };
+  };
+  function resize() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = innerWidth; H = innerHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    cv.style.width = W + "px"; cv.style.height = H + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.round(clamp(W * H / 9000, 50, 170));
+    while (parts.length < n) parts.push(mk(true));
+    parts.length = n;
+    if (!running) draw(0);
+  }
+  function draw(dt) {
+    const k = dt / 16.67;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "lighter";
+    for (const p of parts) {
+      if (dt) {
+        p.ph += .01 * k;
+        p.x += (p.vx + Math.sin(p.ph) * .08 * p.z) * k; p.y += p.vy * k;
+        const dx = p.x - mx, dy = p.y - my, d2 = dx * dx + dy * dy;
+        if (d2 < 14400) { const d = Math.sqrt(d2) || 1, f = (1 - d2 / 14400) * 1.6 * p.z * k; p.x += dx / d * f; p.y += dy / d * f; }
+        if (p.y < -12) Object.assign(p, mk(false));
+        if (p.x < -12) p.x = W + 10; else if (p.x > W + 12) p.x = -10;
+      }
+      const b = beam(p.x, p.y), size = (1.2 + p.z * 4.2) * (1 + b * .6);
+      ctx.globalAlpha = p.a * (.16 + .84 * b) * (.75 + .25 * Math.sin(p.ph * 3));
+      ctx.drawImage(sprite, p.x - size, p.y - size, size * 2, size * 2);
+    }
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const p = fx[i];
+      p.life -= dt / 1000;
+      if (p.life <= 0) { fx.splice(i, 1); continue; }
+      const drag = Math.pow(.9, k);
+      p.vx *= drag; p.vy = p.vy * drag - .012 * k;
+      p.x += p.vx * k; p.y += p.vy * k; p.s += p.grow * k;
+      ctx.globalAlpha = Math.min(1, p.life / p.max * 1.5) * p.a;
+      ctx.drawImage(sprite, p.x - p.s, p.y - p.s, p.s * 2, p.s * 2);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+  }
+  function loop(t) {
+    if (!running) return;
+    const dt = Math.min(50, t - (last || t)); last = t;
+    draw(dt); requestAnimationFrame(loop);
+  }
+  function start() { if (RM || running) return; running = true; last = 0; requestAnimationFrame(loop); }
+  function stop() { running = false; }
+  function burst(x, y, n = 80, power = 1) {
+    if (RM) return;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * 6.283, v = (1 + Math.random() * 5.5) * power;
+      fx.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1.2, s: 2 + Math.random() * 7, grow: .2 + Math.random() * .25,
+        a: .3 + Math.random() * .5, life: .9 + Math.random() * 1.2, max: 2.1 });
+    }
+  }
+  function puff(x, y) {
+    if (RM || fx.length > 500) return;
+    fx.push({ x: x + (Math.random() - .5) * 8, y: y + (Math.random() - .5) * 8, vx: (Math.random() - .5) * .6, vy: -.2 - Math.random() * .4,
+      s: 1.5 + Math.random() * 2.5, grow: .05, a: .22, life: .9, max: .9 });
+  }
+  addEventListener("resize", resize);
+  addEventListener("pointermove", e => { mx = e.clientX; my = e.clientY; }, { passive: true });
+  document.addEventListener("pointerleave", () => { mx = my = -9999; });
+  document.addEventListener("visibilitychange", () => document.hidden ? stop() : start());
+  resize(); start();
+  return { burst, puff };
+})();
+
+/* ===== Sound (synthesized, no files) ===== */
+const Sound = (() => {
+  let ac = null, on = store.get("gympact.sound") !== "off";
+  function ctx() {
+    if (!on) return null;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === "suspended") ac.resume();
+    } catch { return null; }
+    return ac;
+  }
+  function tone(f, dur, type = "sine", vol = .1, when = 0, f2 = 0) {
+    const a = ctx(); if (!a) return;
+    const t = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .05);
+  }
+  function noise(dur, vol, freq, q = 1, when = 0, type = "bandpass") {
+    const a = ctx(); if (!a) return;
+    const t = a.currentTime + when, len = Math.ceil(a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+    const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = buf; f.type = type; f.frequency.value = freq; f.Q.value = q; g.gain.value = vol;
+    s.connect(f).connect(g).connect(a.destination); s.start(t);
+  }
+  return {
+    get on() { return on; },
+    toggle() { on = !on; store.set("gympact.sound", on ? "on" : "off"); if (on) this.beep(); return on; },
+    wake() { ctx(); },
+    beep() { tone(2093, .06, "square", .035); },
+    ok() { tone(1568, .07, "square", .04); tone(2093, .14, "square", .04, .09); },
+    deny() { tone(140, .5, "sawtooth", .07); tone(147, .5, "sawtooth", .06); noise(.25, .3, 300, .7); },
+    clank() { noise(.22, .9, 2600, 3); [523, 1307, 2471, 3953].forEach((f, i) => tone(f, .75 - i * .12, "sine", .07 / (i + 1))); tone(90, .3, "sine", .5, 0, 45); },
+    rumble() { noise(1.1, .55, 180, .6, 0, "lowpass"); for (let i = 0; i < 9; i++) noise(.05, .22, 1100 + Math.random() * 900, 4, i * .11); },
+    good() { [1046, 1318, 1568].forEach((f, i) => tone(f, .2, "square", .045, i * .14)); tone(2093, .55, "triangle", .06, .44); },
+    horn() { tone(185, 1.2, "sawtooth", .09); tone(196, 1.2, "sawtooth", .08); tone(92, 1.2, "square", .05); }
+  };
+})();
+function syncSoundBtn() { $("soundBtn").setAttribute("aria-pressed", String(Sound.on)); }
+$("soundBtn").onclick = () => { Sound.toggle(); syncSoundBtn(); };
+syncSoundBtn();
+
+/* ===== 7-segment LED displays ===== */
+const SEGMAP = {
+  "0": "abcdef", "1": "bc", "2": "abdeg", "3": "abcdg", "4": "bcfg", "5": "acdfg", "6": "acdefg", "7": "abc", "8": "abcdefg", "9": "abcdfg",
+  "A": "abcefg", "b": "cdefg", "C": "adef", "d": "bcdeg", "E": "adefg", "F": "aefg", "G": "acdef", "I": "ef", "L": "def",
+  "n": "ceg", "o": "cdeg", "O": "abcdef", "P": "abefg", "r": "eg", "S": "acdfg", "-": "g", " ": ""
+};
+const SEGPTS = (() => {
+  const h = 5;
+  const H = (x1, x2, y) => `${x1},${y} ${x1 + h},${y - h} ${x2 - h},${y - h} ${x2},${y} ${x2 - h},${y + h} ${x1 + h},${y + h}`;
+  const V = (x, y1, y2) => `${x},${y1} ${x + h},${y1 + h} ${x + h},${y2 - h} ${x},${y2} ${x - h},${y2 - h} ${x - h},${y1 + h}`;
+  return { a: H(8, 52, 6), b: V(54, 8, 48), c: V(54, 52, 92), d: H(8, 52, 94), e: V(6, 52, 92), f: V(6, 8, 48), g: H(8, 52, 50) };
+})();
+const digitSVG = () => `<svg class="dg" viewBox="-2 -2 76 104"><g transform="translate(12 0) skewX(-7)">${
+  "abcdefg".split("").map(s => `<polygon data-s="${s}" points="${SEGPTS[s]}" style="--d:${(Math.random() * .5).toFixed(2)}s"/>`).join("")}</g></svg>`;
+const colonSVG = () => `<svg class="cl" viewBox="0 0 20 104"><circle cx="13" cy="33" r="5.5"/><circle cx="8" cy="71" r="5.5"/></svg>`;
+function Led(host, groups, colons) {
+  host.innerHTML = groups.map((g, i) =>
+    (i && colons ? colonSVG() : "") +
+    `<div class="lg"><div class="lgd">${digitSVG().repeat(g.n)}</div>${g.label ? `<span class="lu">${g.label}</span>` : ""}</div>`).join("");
+  const digits = [...host.querySelectorAll(".dg")].map(svg => [...svg.querySelectorAll("polygon")]);
+  const cols = [...host.querySelectorAll(".cl")];
+  let shown = null;
+  return {
+    host,
+    set(text) {
+      if (text === shown) return; shown = text;
+      digits.forEach((polys, i) => { const on = SEGMAP[text[i]] ?? ""; polys.forEach(p => p.classList.toggle("on", on.includes(p.dataset.s))); });
+    },
+    colon(on) { cols.forEach(c => c.classList.toggle("on", on)); },
+    textMode(on) { host.classList.toggle("text", on); },
+    boot(ms = 900) { if (RM) return; host.classList.add("booting"); setTimeout(() => host.classList.remove("booting"), ms); }
+  };
+}
+const readerLed = Led($("readerLed"), [{ n: 4 }]);
+const mainLed = Led($("mainLed"), [{ n: 2, label: "days" }, { n: 2, label: "hrs" }, { n: 2, label: "min" }, { n: 2, label: "sec" }], true);
+const weekLed = Led($("weekLed"), [{ n: 2, label: "week" }]);
+const verdictLed = Led($("verdictLed"), [{ n: 4 }]);
+readerLed.set("----"); readerLed.host.classList.add("blink");
+
+/* ===== State ===== */
+const params = new URLSearchParams(location.search);
+const S = {
+  pact: null, mode: params.has("new") ? "create" : "pact",
+  prov: null, signer: null, account: null, role: null,
+  me: null, friend: null, endsAt: 0, locked: 0n, bal: 0n, bits: 0n, logLive: false, skew: 0,
+  prevBits: null, prevStatus: null, calFor: null, lastDay: null, busy: false, scanning: false, view: "gate", m: null, ledFor: ""
+};
 function loadAddr() {
-  const q = new URLSearchParams(location.search).get("c") || localStorage.getItem("gympact");
-  return q && ethers.isAddress(q) ? ethers.getAddress(q) : null;
+  const a = [params.get("c"), store.get("gympact"), DEFAULT_PACT].find(x => x && ethers.isAddress(x));
+  return ethers.getAddress(a);
 }
 function setAddr(a) {
-  pactAddr = ethers.getAddress(a);
-  localStorage.setItem("gympact", pactAddr);
-  history.replaceState(null, "", "?c=" + pactAddr);
+  S.pact = ethers.getAddress(a);
+  store.set("gympact", S.pact);
+  history.replaceState(null, "", "?c=" + S.pact);
+  S.prevBits = S.prevStatus = S.calFor = null;
 }
-function say(text, kind) { $("msg").textContent = text; $("msg").className = kind || ""; }
-function errText(e) { return (e && (e.shortMessage || e.reason || e.message)) || String(e); }
-function fmtLeft(s) {
-  s = Number(s);
-  if (s === 0) return "Finished";
-  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600);
-  return d + " days " + h + " hours";
+S.pact = loadAddr();
+const now = () => Date.now() / 1000 + S.skew;
+
+if (ethers.getCreate2Address(CREATE2_PROXY, LOG_SALT, ethers.keccak256(LOG_INITCODE)) !== LOG_ADDR) {
+  throw new Error("GymLog address mismatch");
 }
 
-async function connect() {
-  if (!window.ethereum) return say("No wallet found. Open this page in a browser with MetaMask, Coinbase Wallet or Rabby.", "err");
-  try {
-    await window.ethereum.request({ method: "eth_requestAccounts" });
+/* ===== UI bits ===== */
+let toastT;
+function toast(msg, kind = "", ms = 4200) {
+  const t = $("toast");
+  t.textContent = msg; t.className = "toast show " + kind;
+  clearTimeout(toastT);
+  if (ms) toastT = setTimeout(() => t.classList.remove("show"), ms);
+}
+function shake(el, hard) {
+  if (RM || !el) return;
+  el.classList.remove("shake", "shake-hard"); void el.offsetWidth;
+  el.classList.add(hard ? "shake-hard" : "shake");
+  setTimeout(() => el.classList.remove("shake", "shake-hard"), 750);
+}
+function show(view) {
+  S.view = view;
+  $("gate").hidden = view !== "gate";
+  $("app").hidden = view !== "app";
+  $("create").hidden = view !== "create";
+}
+function burstAt(el, n, power) {
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  if (r.bottom < 0 || r.top > innerHeight) return;
+  Dust.burst(r.left + r.width / 2, r.top + r.height / 2, n, power);
+}
+function addrButton(a) { return `<button class="addr" data-copy="${esc(a)}" title="Copy ${esc(a)}">${esc(short(a))}</button>`; }
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-copy]");
+  if (!b) return;
+  navigator.clipboard?.writeText(b.dataset.copy).then(() => toast("Address copied.", "ok", 1800), () => {});
+});
+
+/* ===== Wallet ===== */
+async function connectWallet(interactive) {
+  const eth = window.ethereum;
+  if (!eth) throw new Error("No wallet in this browser.");
+  const accs = await eth.request({ method: interactive ? "eth_requestAccounts" : "eth_accounts" });
+  if (!accs || !accs.length) return false;
+  if ((await eth.request({ method: "eth_chainId" })) !== BASE_HEX) {
+    if (!interactive) return false;
     try {
-      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BASE_HEX }] });
+      await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BASE_HEX }] });
     } catch (e) {
       if (e.code !== 4902) throw e;
-      await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{
-        chainId: BASE_HEX, chainName: "Base",
-        nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      await eth.request({ method: "wallet_addEthereumChain", params: [{
+        chainId: BASE_HEX, chainName: "Base", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
         rpcUrls: ["https://mainnet.base.org"], blockExplorerUrls: ["https://basescan.org"] }] });
     }
-    signer = await new ethers.BrowserProvider(window.ethereum).getSigner();
-    account = await signer.getAddress();
-    $("account").textContent = "Connected: " + account;
-    $("connect").hidden = true;
-    window.ethereum.on("accountsChanged", () => location.reload());
-    window.ethereum.on("chainChanged", () => location.reload());
-    say("");
-    await refresh();
-  } catch (e) { say(errText(e), "err"); }
+  }
+  S.prov = new ethers.BrowserProvider(eth);
+  S.signer = await S.prov.getSigner();
+  S.account = await S.signer.getAddress();
+  if (eth.on && !S.listening) {
+    S.listening = true;
+    eth.on("accountsChanged", () => location.reload());
+    eth.on("chainChanged", () => location.reload());
+  }
+  return true;
 }
 
+/* ===== Chain reads ===== */
 async function refresh() {
-  const secs = ["statusSec", "depositSec", "failSec", "withdrawSec"];
-  $("deploySec").hidden = !(account && !pactAddr);
-  if (!pactAddr) { secs.forEach(s => $(s).hidden = true); return; }
+  const rp = S.prov; // the wallet's own node sees new transactions first
+  const pact = new ethers.Contract(S.pact, PACT_ABI, rp);
+  const [me, friend, endsAt, locked, blk, code] = await Promise.all([
+    pact.me(), pact.friend(), pact.endsAt(), pact.locked(), rp.getBlock("latest"), rp.getCode(LOG_ADDR)]);
+  S.me = me; S.friend = friend; S.endsAt = Number(endsAt); S.locked = locked;
+  S.skew = blk.timestamp - Date.now() / 1000;
+  S.role = same(S.account, me) ? "me" : same(S.account, friend) ? "friend" : null;
+  S.logLive = !!code && code !== "0x";
+  S.bits = S.logLive ? await new ethers.Contract(LOG_ADDR, LOG_ABI, rp).checkIns(S.pact) : 0n;
+  if (S.role === "me") S.bal = await new ethers.Contract(USDC, USDC_ABI, rp).balanceOf(S.account);
+  if (S.view === "app") render();
+}
 
-  const rp = signer ? signer.provider : readProvider; // wallet's own node sees new txs first
-  const pact = new ethers.Contract(pactAddr, PACT_ABI, rp);
-  let me, friend, endsAt, locked, left;
-  try {
-    [me, friend, endsAt, locked, left] = await Promise.all(
-      [pact.me(), pact.friend(), pact.endsAt(), pact.locked(), pact.timeLeft()]);
-  } catch (e) {
-    secs.forEach(s => $(s).hidden = true);
-    $("deploySec").hidden = !account;
-    return say("No GymPact contract found at " + pactAddr + ".", "err");
+/* ===== Pact model ===== */
+function model() {
+  const t = now(), start = S.endsAt - DURATION, startDay = dayOf(start);
+  const today = dayOf(t) - startDay, over = t > S.endsAt, unlocked = t > S.endsAt + GRACE;
+  const weeks = [];
+  for (let w = 0; w < NWEEKS; w++) {
+    const days = []; let count = 0, possible = 0, started = false, ended = true;
+    for (let i = 0; i < 7; i++) {
+      const d = w * 7 + i; if (d >= NDAYS) break;
+      const done = bit(S.bits, d);
+      const st = done ? "done" : d < today ? "missed" : d === today ? (over ? "missed" : "today") : "future";
+      if (done) count++;
+      if (st === "today" || st === "future") possible++;
+      if (d <= today) started = true;
+      if (d >= today) ended = false;
+      days.push({ d, dn: startDay + d, st });
+    }
+    const need = Math.max(0, 3 - count);
+    const status = count >= 3 ? "good" : count + possible < 3 ? "broken" : started ? "live" : "upcoming";
+    weeks.push({ w, days, count, possible, need, status, ended });
   }
+  const broken = weeks.filter(x => x.status === "broken");
+  const cur = clamp(Math.floor(today / 7), 0, NWEEKS - 1);
+  const todayDone = today >= 0 && today < NDAYS && bit(S.bits, today);
+  return { t, start, startDay, today, over, unlocked, weeks, broken, cur, todayDone };
+}
+function weekWords(w) {
+  if (w.status === "good") return "Good week";
+  if (w.status === "broken") return "Broken";
+  if (w.status === "upcoming") return "Starts " + fmtDay(w.days[0].dn);
+  return `${w.need} more` + (w.possible === w.need ? ", no rest days left" : "");
+}
+function lightsOf(w) { return [0, 1, 2].map(i => w.status === "good" ? "g" : i < w.count ? "w" : w.status === "broken" ? "r" : ""); }
 
-  $("statusSec").hidden = false;
-  $("locked").textContent = ethers.formatUnits(locked, 6) + " USDC";
-  $("left").textContent = fmtLeft(left);
-  $("unlock").textContent = new Date((Number(endsAt) + 3 * 86400) * 1000).toLocaleString();
-  $("meAddr").textContent = me;
-  $("friendAddr").textContent = friend;
-  $("pactAddr").textContent = pactAddr;
+/* ===== Rendering ===== */
+function render() {
+  if (!S.endsAt) return;
+  const m = model(); S.m = m;
+  const broken = m.broken.length > 0;
+  $("panel").classList.toggle("bad", broken);
+  $("barbell").classList.toggle("bad", broken);
+  const isMe = S.role === "me";
 
-  const isMe = account && account.toLowerCase() === me.toLowerCase();
-  const isFriend = account && account.toLowerCase() === friend.toLowerCase();
-  $("depositSec").hidden = !isMe;
-  $("withdrawSec").hidden = !isMe;
-  $("failSec").hidden = !isFriend;
-  $("withdrawBtn").disabled = left > 0n || locked === 0n;
-  $("failBtn").disabled = left === 0n || locked === 0n;
+  $("roleChip").textContent = (isMe ? "Gym-goer " : "Friend ") + short(S.account);
+  $("pledge").textContent = isMe
+    ? "Gym 3× a week for 90 days, or my friend takes the USDC."
+    : `${short(S.me)} trains 3× a week for 90 days, or you take the USDC.`;
+  $("meCell").innerHTML = addrButton(S.me) + (isMe ? `<span class="you">you</span>` : "");
+  $("friendCell").innerHTML = addrButton(S.friend) + (!isMe ? `<span class="you">you</span>` : "");
+  countTo($("lockedAmt"), S.locked);
+
+  const unlockAt = S.endsAt + GRACE;
+  $("panelCaption").textContent = m.unlocked
+    ? `Unlocked ${fmtWhen(unlockAt)}.`
+    : isMe ? `until your USDC unlocks, ${fmtWhen(unlockAt)}` : `left in the pact, until ${fmtWhen(unlockAt)}`;
+  weekLed.set(p2(m.cur + 1));
+
+  const prog = clamp((m.t - m.start) / DURATION, 0, 1);
+  setTimeout(() => { $("barFill").style.setProperty("--p", (prog * 100).toFixed(2) + "%"); $("barMark").style.setProperty("--p", (prog * 100).toFixed(2) + "%"); }, S.booting ? 700 : 0);
+  $("barDays").textContent = m.over ? "All 90 days done" : `Day ${Math.floor((m.t - m.start) / DAY) + 1} of 90`;
+  $("barEnd").textContent = (m.over ? "Ended " : "Ends ") + fmtWhen(S.endsAt);
+
+  renderBanner(m); renderCTA(m); renderCal(m); renderMoney(m); renderFoot();
+  const prevBits = S.prevBits, prevStatus = S.prevStatus;
+  S.prevBits = S.bits; S.prevStatus = m.weeks.map(w => w.status);
+  if (prevBits !== null) celebrate(m, prevBits, prevStatus);
+  maybeBroken(m);
+  tick();
+}
+
+function renderBanner(m) {
+  const b = $("banner"), isMe = S.role === "me";
+  const until = fmtWhen(S.endsAt + GRACE), amt = fmtUSDC(S.locked) + " USDC";
+  if (m.broken.length) {
+    const w = m.broken[0];
+    let text;
+    if (S.locked === 0n) text = `Week ${w.w + 1} had ${w.count} of 3 sessions. The USDC has been claimed.`;
+    else if (m.unlocked) text = `Week ${w.w + 1} had ${w.count} of 3 sessions, but the claim window has closed.`;
+    else text = isMe ? `Week ${w.w + 1}: ${w.count} of 3 sessions. Your friend can claim the ${amt} until ${until}.`
+                     : `Week ${w.w + 1}: ${w.count} of 3 sessions. You can claim the ${amt} until ${until}.`;
+    b.className = "banner bad";
+    b.innerHTML = `<p><b>Pact broken.</b> ${esc(text)}</p>` +
+      (!isMe && S.locked > 0n && !m.unlocked ? `<button class="btn danger" data-act="claim">Claim ${esc(amt)}</button>` : "");
+    b.hidden = false;
+  } else if (m.unlocked) {
+    b.className = "banner good";
+    b.innerHTML = `<p><b>Pact kept.</b> ${isMe ? (S.locked > 0n ? "Withdraw your USDC below." : "Your USDC is back in your wallet.") : esc(short(S.me)) + " made it through all 90 days."}</p>`;
+    b.hidden = false;
+  } else b.hidden = true;
+}
+
+function renderCTA(m) {
+  const el = $("cta"), key = [S.role, S.logLive, m.over, m.todayDone, m.cur, m.weeks[m.cur].count, m.broken.length].join("|");
+  if (el.dataset.key === key && !S.busy) return;
+  el.dataset.key = key;
+  if (S.role === "me") {
+    if (!S.logLive) {
+      el.innerHTML = `<button class="btn big pulse magnet" data-act="activate">Turn on the calendar</button>
+        <p class="cta-note">One-time setup on Base, about a cent in ETH. After that you check in on the days you train.</p>`;
+    } else if (m.over) {
+      el.innerHTML = `<div class="stamp">The 90 days are over</div><p class="cta-note">${m.unlocked ? "Your USDC is unlocked." : "Your USDC unlocks " + esc(fmtWhen(S.endsAt + GRACE)) + "."}</p>`;
+    } else if (m.todayDone) {
+      el.innerHTML = `<div class="stamp ok" id="stamp"><svg viewBox="0 0 26 26"><path d="M5 14l5 5L21 7"/></svg>Trained today</div>
+        <p class="cta-note">Next check-in opens at midnight.</p>`;
+    } else {
+      el.innerHTML = `<button class="btn big pulse magnet" data-act="checkin">I trained today</button>
+        <p class="cta-note">Logs today on Base for a fraction of a cent. Check-ins only count for the day you make them.</p>`;
+    }
+  } else {
+    const w = m.weeks[m.cur];
+    el.innerHTML = `<div class="spot"><strong>This week: ${w.count} of 3 sessions</strong><span>${esc(m.over ? "The 90 days are over." : weekWords(w) + ".")}</span></div>` +
+      (S.logLive ? "" : `<p class="cta-note">The calendar isn't on yet. ${esc(short(S.me))} turns it on from their side.</p>`);
+  }
+}
+function busyCTA(text) {
+  const b = $("cta").querySelector(".btn");
+  if (b) { b.disabled = true; b.classList.remove("pulse"); b.textContent = text; }
+}
+
+function buildCal(m) {
+  const head = `<div class="row head"><span></span>${[0, 1, 2, 3, 4, 5, 6].map(i => `<span>${WD[dateOf(m.startDay + i).getUTCDay()]}</span>`).join("")}<span class="lh">Sessions</span><span class="vh"></span></div>`;
+  const rows = m.weeks.map(w => {
+    const first = w.days[0].dn, lastDn = w.days[w.days.length - 1].dn;
+    const cells = w.days.map((x, i) => {
+      const dt = dateOf(x.dn), n = dt.getUTCDate();
+      const mo = (n === 1 || (w.w === 0 && i === 0)) ? `<span class="mo">${MON[dt.getUTCMonth()]}</span>` : "";
+      return `<div class="day" data-d="${x.d}"><span class="n">${n}</span>${mo}<svg class="chk" viewBox="0 0 40 40" aria-hidden="true"><path pathLength="100" d="M8 22c3 2.6 6 5.4 8.6 8.2C21.4 22.6 26.6 15.4 33 8.6"/></svg></div>`;
+    }).join("");
+    const range = MON[dateOf(first).getUTCMonth()] === MON[dateOf(lastDn).getUTCMonth()]
+      ? `${fmtDay(first)}–${dateOf(lastDn).getUTCDate()}` : `${fmtDay(first)}–${fmtDay(lastDn)}`;
+    return `<div class="row" data-w="${w.w}" style="--i:${w.w}"><div class="wk"><b><span class="wl">Week </span>${w.w + 1}</b><span>${range}</span></div>${cells}
+      <div class="lights">${[0, 1, 2].map(() => `<i class="lt" style="--i:${w.w}"></i>`).join("")}<span class="xtra"></span></div><div class="vt"></div></div>`;
+  }).join("");
+  $("cal").innerHTML = head + rows;
+  S.calFor = S.pact + m.startDay;
+}
+function renderCal(m) {
+  if (S.calFor !== S.pact + m.startDay) buildCal(m);
+  const isMe = S.role === "me";
+  $("calSub").textContent = isMe
+    ? "Tap today after you train. Three sessions turns the week green. Days roll over at midnight Toronto time."
+    : "Check-ins show up here as they happen. Three sessions turns a week green; a week that can't reach three turns red.";
+  for (const w of m.weeks) {
+    const row = $("cal").querySelector(`.row[data-w="${w.w}"]`);
+    row.dataset.status = w.status;
+    const ls = lightsOf(w);
+    row.querySelectorAll(".lt").forEach((l, i) => { l.className = "lt" + (ls[i] ? " " + ls[i] : ""); });
+    row.querySelector(".xtra").textContent = w.count > 3 ? "+" + (w.count - 3) : "";
+    row.querySelector(".vt").textContent = weekWords(w);
+    row.querySelector(".lights").setAttribute("aria-label", `Week ${w.w + 1}: ${w.count} of 3 sessions, ${weekWords(w)}`);
+    for (const x of w.days) {
+      const c = row.querySelector(`.day[data-d="${x.d}"]`);
+      const can = isMe && S.logLive && x.st === "today" && !S.busy;
+      c.dataset.st = x.st;
+      c.classList.toggle("can", can);
+      let tag = c.querySelector(".tag");
+      if (x.st === "today") { if (!tag) { tag = document.createElement("span"); tag.className = "tag"; c.appendChild(tag); } tag.textContent = "today"; }
+      else if (tag) tag.remove();
+      const label = `${WD[dateOf(x.dn).getUTCDay()]} ${fmtDay(x.dn)}: ${{ done: "trained", missed: "no session", today: "today, not checked in yet", future: "upcoming" }[x.st]}`;
+      c.setAttribute("aria-label", label);
+      if (can) { c.setAttribute("role", "button"); c.tabIndex = 0; } else { c.removeAttribute("role"); c.removeAttribute("tabindex"); }
+    }
+  }
+}
+
+function renderMoney(m) {
+  const el = $("money"), isMe = S.role === "me", until = fmtWhen(S.endsAt + GRACE);
+  const key = [S.role, S.locked, S.bal, m.over, m.unlocked, S.busy].join("|");
+  if (el.dataset.key === key) return;
+  const typed = $("amtIn") ? $("amtIn").value : "";
+  el.dataset.key = key;
   if (isMe) {
-    const bal = await new ethers.Contract(USDC, USDC_ABI, rp).balanceOf(account);
-    $("bal").textContent = ethers.formatUnits(bal, 6);
+    el.innerHTML = (m.over ? `<div><h3>Add USDC</h3><p class="m-note">The 90 days are over, so there's nothing left to put on the line.</p></div>` : `<div><h3>Add USDC</h3>
+        <p class="m-note">You have ${fmtUSDC(S.bal)} USDC on Base. Deposits go straight to the pact contract ${esc(short(S.pact))}.</p>
+        <div class="field"><input id="amtIn" inputmode="decimal" placeholder="Amount" autocomplete="off" aria-label="USDC to deposit"><button class="btn" data-act="deposit"${S.busy ? " disabled" : ""}>Deposit</button></div></div>`) + `
+<div><h3>Withdraw</h3>
+        <p class="m-note">${m.unlocked ? "Whatever is still in the pact comes back to your wallet." : `Opens ${esc(until)}. Whatever is still in the pact then comes back to you.`}</p>
+        <button class="btn ghost" data-act="withdraw"${!m.unlocked || S.locked === 0n || S.busy ? " disabled" : ""}>Withdraw my USDC</button></div>`;
+    if ($("amtIn")) $("amtIn").value = typed;
+  } else {
+    const can = !m.unlocked && S.locked > 0n && !S.busy;
+    el.innerHTML = `<div><h3>Claim the USDC</h3>
+        <p class="m-note">${S.locked > 0n ? `Sends all ${fmtUSDC(S.locked)} USDC in the pact to your wallet. Available until ${esc(until)}. It can't be undone.` : "There's no USDC in the pact right now."}</p>
+        <button class="btn danger" data-act="claim"${can ? "" : " disabled"}>Claim ${fmtUSDC(S.locked)} USDC</button></div>
+      <div><h3>After ${esc(until)}</h3><p class="m-note">Your claim button turns off and only the gym-goer can withdraw.</p></div>`;
   }
-  if (account && !isMe && !isFriend) say("This wallet is neither the gym-goer nor the friend on this pact.", "err");
+}
+function renderFoot() {
+  if ($("foot").dataset.key === S.pact + S.role) return;
+  $("foot").dataset.key = S.pact + S.role;
+  $("foot").innerHTML = `<p>Pact contract <a href="https://basescan.org/address/${S.pact}" target="_blank" rel="noopener">${short(S.pact)}</a>.
+    Calendar contract <a href="https://basescan.org/address/${LOG_ADDR}" target="_blank" rel="noopener">${short(LOG_ADDR)}</a>.</p>
+    <p>Only the two wallets on this pact can open this page. The contracts themselves are public on Base.</p>
+    ${S.role === "me" ? `<p><button class="link" data-act="new">Start a new pact</button></p>` : ""}`;
 }
 
-async function send(label, fn) {
+/* Amount odometer */
+function countTo(el, v) {
+  const target = Number(ethers.formatUnits(v, 6));
+  const from = el._v ?? 0; el._v = target;
+  const paint = x => { el.innerHTML = x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "<small>USDC</small>"; };
+  if (RM || from === target) return paint(target);
+  const t0 = performance.now(), dur = 1300;
+  const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 4); paint(from + (target - from) * e); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+
+/* ===== Timer ===== */
+function tick() {
+  if (S.view !== "app" || !S.endsAt) return;
+  const t = now(), left = Math.max(0, Math.floor(S.endsAt + GRACE - t));
+  const broken = S.m && S.m.broken.length > 0;
+  let text;
+  if (left === 0) text = broken ? "  FAIL  " : "  PASS  ";
+  else if (broken && Math.floor(t) % 9 < 2) text = "  FAIL  ";
+  if (text) { mainLed.textMode(true); mainLed.colon(false); mainLed.set(text); }
+  else {
+    const d = Math.floor(left / DAY), h = Math.floor(left % DAY / 3600), mi = Math.floor(left % 3600 / 60), s = left % 60;
+    mainLed.textMode(false); mainLed.set(p2(Math.min(99, d)) + p2(h) + p2(mi) + p2(s)); mainLed.colon((Date.now() % 1000) < 600);
+    const lbl = `${d} days ${h} hours ${mi} minutes`;
+    if (S.ledFor !== lbl) { S.ledFor = lbl; $("mainLed").setAttribute("aria-label", lbl + " left"); }
+  }
+  const day = dayOf(t);
+  if (S.lastDay !== null && day !== S.lastDay) { S.lastDay = day; render(); return; }
+  S.lastDay = day;
+}
+setInterval(tick, 250);
+
+/* ===== Moments ===== */
+function celebrate(m, prevBits, prevStatus) {
+  const added = S.bits & ~prevBits;
+  if (added) {
+    for (let d = 0; d < NDAYS; d++) {
+      if (!bit(added, d)) continue;
+      const c = $("cal").querySelector(`.day[data-d="${d}"]`);
+      if (!c) continue;
+      c.classList.add("fresh"); setTimeout(() => c.classList.remove("fresh"), 1500);
+      burstAt(c, 90, 1.1);
+    }
+    burstAt($("stamp"), 140, 1.5);
+    Sound.clank(); shake($("app"));
+    if (navigator.vibrate) navigator.vibrate([20, 40, 70]);
+    if (S.role === "friend") toast(`New check-in from ${short(S.me)}.`, "ok");
+  }
+  m.weeks.forEach((w, i) => {
+    if (prevStatus && prevStatus[i] !== "good" && w.status === "good") {
+      const row = $("cal").querySelector(`.row[data-w="${i}"]`);
+      row.classList.add("sweep"); setTimeout(() => row.classList.remove("sweep"), 1300);
+      setTimeout(() => goodLift(w), added ? 650 : 0);
+    }
+  });
+}
+function maybeBroken(m) {
+  const w = m.broken[0];
+  if (!w) return;
+  const key = `gympact.seen.${S.pact}.${w.w}`;
+  if (store.get(key)) return;
+  store.set(key, "1");
+  setTimeout(() => brokenSeq(m, w), S.booting ? 1900 : 300);
+}
+function openVerdict(kind) {
+  const v = $("verdict");
+  v.className = "verdict " + kind; v.hidden = false;
+  void v.offsetWidth; v.classList.add("go");
+  verdictLed.host.classList.toggle("blink", kind === "bad");
+}
+function closeVerdict() { $("verdict").hidden = true; clearTimeout(S.vT); }
+function goodLift(w) {
+  verdictLed.set("Good");
+  $("verdictTitle").textContent = "Good week";
+  $("verdictText").textContent = S.role === "me"
+    ? `Week ${w.w + 1}: ${w.count} sessions. ${NWEEKS - 1 - w.w > 0 ? (NWEEKS - 1 - w.w) + " weeks to go." : "That's the last one."}`
+    : `${short(S.me)} hit ${w.count} sessions in week ${w.w + 1}.`;
+  $("verdictBtn").hidden = true;
+  openVerdict("good"); Sound.good();
+  clearTimeout(S.vT); S.vT = setTimeout(closeVerdict, 2600);
+}
+function brokenSeq(m, w) {
+  verdictLed.set("FAIL");
+  $("verdictTitle").textContent = "Pact broken";
+  const how = w.ended ? `Week ${w.w + 1} ended with ${w.count} of 3 sessions.` : `Week ${w.w + 1} can't reach 3 sessions anymore (${w.count} so far).`;
+  const amt = fmtUSDC(S.locked) + " USDC";
+  $("verdictText").textContent = how + " " + (S.locked === 0n ? "" : S.role === "me" ? `Your friend can claim the ${amt}.` : `You can claim the ${amt}.`);
+  const b = $("verdictBtn"); b.hidden = false; b.textContent = "Got it";
+  openVerdict("bad"); Sound.horn(); shake($("verdict"), true);
+  if (navigator.vibrate) navigator.vibrate([120, 60, 120, 60, 300]);
+  setTimeout(() => b.focus(), 50);
+}
+$("verdictBtn").onclick = closeVerdict;
+$("verdict").addEventListener("click", e => { if ($("verdict").classList.contains("good") || e.target === $("verdict")) closeVerdict(); });
+
+function modal({ title, text, ok, danger, onOk }) {
+  $("modalTitle").textContent = title; $("modalText").textContent = text;
+  const b = $("modalOk"); b.textContent = ok; b.className = "btn" + (danger ? " danger" : "");
+  b.onclick = () => { closeModal(); onOk(); };
+  $("modal").hidden = false; $("modalCancel").focus();
+}
+function closeModal() { $("modal").hidden = true; }
+$("modalCancel").onclick = closeModal;
+$("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
+addEventListener("keydown", e => {
+  if (e.key === "Escape") { closeModal(); if ($("verdict").classList.contains("good") || !$("verdictBtn").hidden) closeVerdict(); }
+});
+
+/* ===== Actions ===== */
+async function send(label, fn, done) {
+  if (S.busy) return false;
+  S.busy = true; render();
   try {
-    say(label + ": confirm in your wallet…");
+    toast(`${label}: confirm in your wallet.`, "", 0);
     const tx = await fn();
-    say(label + ": waiting for confirmation…");
+    toast(`${label}: waiting for Base…`, "", 0);
     await tx.wait();
-    say(label + " done.", "ok");
+    S.busy = false;
     await refresh();
-  } catch (e) { say(label + " failed: " + errText(e), "err"); }
+    toast(done, "ok", 6000);
+    return true;
+  } catch (e) {
+    toast(errText(e), "bad", 7000);
+    return false;
+  } finally {
+    S.busy = false; if (S.view === "app") render();
+  }
 }
-
-$("connect").onclick = connect;
-
-$("deployBtn").onclick = async () => {
-  const friend = $("friendIn").value.trim();
-  if (!ethers.isAddress(friend)) return say("That is not a valid wallet address.", "err");
-  if (friend.toLowerCase() === account.toLowerCase()) return say("Your friend's address can't be your own.", "err");
+async function checkIn() {
+  const m = model();
+  if (S.busy || S.role !== "me" || !S.logLive || m.over || m.todayDone) return;
+  S.busy = true; busyCTA("Confirm in your wallet…");
+  const cell = $("cal").querySelector(`.day[data-d="${m.today}"]`);
   try {
-    say("Deploy: confirm in your wallet…");
-    const c = await new ethers.ContractFactory(PACT_ABI, BYTECODE, signer).deploy(friend);
-    say("Deploy: waiting for confirmation…");
+    const log = new ethers.Contract(LOG_ADDR, LOG_ABI, S.signer);
+    await log.checkIn.staticCall(S.pact); // surfaces a readable reason before the wallet opens
+    toast("Check-in: confirm in your wallet.", "", 0);
+    const tx = await log.checkIn(S.pact);
+    busyCTA("Logging your session…"); cell && cell.classList.add("pending");
+    toast("Logging your session on Base…", "", 0);
+    await tx.wait();
+    cell && cell.classList.remove("pending");
+    S.busy = false;
+    $("cta").dataset.key = "";
+    await refresh();
+    toast("Session logged.", "ok", 3500);
+  } catch (e) {
+    toast(errText(e), "bad", 7000);
+  } finally {
+    S.busy = false; cell && cell.classList.remove("pending");
+    $("cta").dataset.key = ""; render();
+  }
+}
+function activate() {
+  return send("Calendar setup", () => S.signer.sendTransaction({ to: CREATE2_PROXY, data: ethers.concat([LOG_SALT, LOG_INITCODE]) }),
+    "The calendar is on. Check in on the days you train.");
+}
+function deposit() {
+  let amt;
+  try { amt = ethers.parseUnits(($("amtIn").value || "").trim(), 6); } catch { amt = 0n; }
+  if (amt <= 0n) return toast("Enter how much USDC to add.", "bad");
+  if (amt > S.bal) return toast(`You only have ${fmtUSDC(S.bal)} USDC on Base.`, "bad");
+  send("Deposit", () => new ethers.Contract(USDC, USDC_ABI, S.signer).transfer(S.pact, amt), `Deposited ${fmtUSDC(amt)} USDC.`)
+    .then(ok => { if (ok && $("amtIn")) $("amtIn").value = ""; });
+}
+function withdraw() {
+  send("Withdraw", () => new ethers.Contract(S.pact, PACT_ABI, S.signer).withdraw(), "Withdrawn. The USDC is back in your wallet.");
+}
+function claim() {
+  const m = model(), amt = fmtUSDC(S.locked) + " USDC";
+  const text = m.broken.length
+    ? `Week ${m.broken[0].w + 1} had ${m.broken[0].count} of 3 sessions. The ${amt} goes to your wallet. This can't be undone.`
+    : `The calendar shows they're on track. Claiming takes all ${amt} now and can't be undone.`;
+  modal({ title: `Claim ${amt}?`, text, ok: `Claim ${amt}`, danger: true,
+    onOk: () => send("Claim", () => new ethers.Contract(S.pact, PACT_ABI, S.signer).fail(), `Claimed ${amt}.`) });
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-act]");
+  if (!a || a.disabled) return;
+  Sound.wake();
+  ({ checkin: checkIn, activate, deposit, withdraw, claim, new: () => { S.mode = "create"; show("create"); $("friendIn").focus(); } })[a.dataset.act]?.();
+});
+$("cal").addEventListener("click", e => { if (e.target.closest(".day.can")) checkIn(); });
+$("cal").addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.closest(".day.can")) { e.preventDefault(); checkIn(); }
+});
+
+/* ===== Gate ===== */
+function gateMsg(text, kind = "") { const g = $("gateMsg"); g.textContent = text; g.className = "gate-msg " + kind; }
+function deny(text) {
+  const r = $("reader");
+  r.className = "reader no carded";
+  readerLed.host.classList.remove("blink"); readerLed.set("nOPE");
+  Sound.deny(); shake(r, true); gateMsg(text, "bad");
+}
+async function scan(interactive) {
+  if (S.scanning) return;
+  S.scanning = true;
+  const r = $("reader");
+  if (interactive) Sound.wake();
+  try {
+    if (!window.ethereum) {
+      gateMsg("No wallet in this browser. Open this page in a wallet app, or in a browser with MetaMask, Coinbase Wallet or Rabby.", "bad");
+      const here = location.host + location.pathname + location.search;
+      $("walletLinks").innerHTML = `<a href="https://metamask.app.link/dapp/${esc(here)}">Open in MetaMask</a><a href="https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(location.href)}">Open in Coinbase Wallet</a>`;
+      $("walletLinks").hidden = false;
+      return;
+    }
+    r.className = "reader scanning"; readerLed.host.classList.remove("blink"); readerLed.set("SCAn"); gateMsg("");
+    const minWait = sleep(RM ? 200 : 1300);
+    if (!(await connectWallet(interactive))) { r.className = "reader"; readerLed.set("----"); readerLed.host.classList.add("blink"); return; }
+    $("cardAddr").textContent = short(S.account);
+    r.classList.add("carded");
+    if (S.mode === "create") {
+      await minWait;
+      r.className = "reader ok carded"; readerLed.set("OPEn"); Sound.ok();
+      await sleep(450);
+      return openGate("create");
+    }
+    try { await refresh(); } catch { await minWait; return deny(`No GymPact found at ${short(S.pact)}.`); }
+    await minWait;
+    if (!S.role) return deny("This wallet isn't on this pact. Switch to the gym-goer's or the friend's wallet.");
+    r.className = "reader ok carded"; readerLed.set("OPEn"); Sound.ok();
+    await sleep(RM ? 100 : 550);
+    openGate("app");
+  } catch (e) {
+    deny(errText(e));
+  } finally {
+    S.scanning = false;
+  }
+}
+function openGate(next) {
+  const g = $("gate");
+  if (next === "app") { $("app").hidden = false; S.view = "app"; enterApp(); }
+  else { $("create").hidden = false; S.view = "create"; }
+  g.classList.add("open"); Sound.rumble();
+  setTimeout(() => { g.hidden = true; g.classList.remove("open"); }, RM ? 30 : 1250);
+}
+function enterApp() {
+  show("app");
+  S.booting = true;
+  const app = $("app");
+  if (!RM) { app.classList.add("boot"); $("wordmark").classList.remove("glint"); void app.offsetWidth; $("wordmark").classList.add("glint"); mainLed.boot(950); weekLed.boot(950); }
+  render();
+  setTimeout(() => { app.classList.remove("boot"); S.booting = false; }, 2600);
+}
+$("scanBtn").onclick = () => scan(true);
+$("newLink").onclick = () => { S.mode = "create"; scan(true); };
+
+/* ===== Create / open a pact ===== */
+$("deployBtn").onclick = async () => {
+  const f = $("friendIn").value.trim();
+  if (!ethers.isAddress(f)) return toast("That isn't a valid wallet address.", "bad");
+  if (same(f, S.account)) return toast("Your friend's address can't be your own.", "bad");
+  if (S.busy) return;
+  S.busy = true; $("deployBtn").disabled = true;
+  try {
+    toast("New pact: confirm in your wallet.", "", 0);
+    const c = await new ethers.ContractFactory(PACT_ABI, BYTECODE, S.signer).deploy(f);
+    toast("Deploying on Base…", "", 0);
     await c.waitForDeployment();
     setAddr(await c.getAddress());
-    say("Pact created. The 90 days have started — now deposit your USDC.", "ok");
+    S.mode = "pact"; S.view = "app";
     await refresh();
-  } catch (e) { say("Deploy failed: " + errText(e), "err"); }
+    enterApp();
+    toast("Pact created. Your 90 days have started. Now deposit your USDC.", "ok", 8000);
+  } catch (e) {
+    toast(errText(e), "bad", 7000);
+  } finally {
+    S.busy = false; $("deployBtn").disabled = false;
+  }
 };
-
-$("openBtn").onclick = () => {
+$("openBtn").onclick = async () => {
   const a = $("existingIn").value.trim();
-  if (!ethers.isAddress(a)) return say("That is not a valid contract address.", "err");
-  setAddr(a); say(""); refresh();
+  if (!ethers.isAddress(a)) return toast("That isn't a valid contract address.", "bad");
+  const prev = S.pact;
+  setAddr(a);
+  try {
+    S.view = "create"; await refresh();
+    if (!S.role) throw new Error("This wallet isn't on that pact.");
+    S.mode = "pact"; enterApp();
+  } catch (e) {
+    toast(/isn't on that pact/.test(e.message) ? e.message : "No GymPact found at that address.", "bad", 6000);
+    setAddr(prev);
+  }
+};
+$("backBtn").onclick = async () => {
+  S.mode = "pact";
+  try { await refresh(); if (S.role) return enterApp(); } catch {}
+  show("gate"); $("reader").className = "reader"; readerLed.set("----"); readerLed.host.classList.add("blink");
 };
 
-$("depositBtn").onclick = () => {
-  let amount;
-  try { amount = ethers.parseUnits($("amountIn").value.trim(), 6); } catch (e) { amount = 0n; }
-  if (amount <= 0n) return say("Enter an amount of USDC.", "err");
-  send("Deposit", () => new ethers.Contract(USDC, USDC_ABI, signer).transfer(pactAddr, amount));
-};
+/* ===== Pointer flourishes ===== */
+if (FINE && !RM) {
+  let pending = false, lx = 0, ly = 0;
+  addEventListener("pointermove", e => {
+    lx = e.clientX; ly = e.clientY;
+    if (Math.random() < .3) Dust.puff(lx, ly);
+    if (pending) return; pending = true;
+    requestAnimationFrame(() => {
+      pending = false;
+      if (S.view !== "app") return;
+      const p = $("panel"), r = p.getBoundingClientRect();
+      const dx = clamp((lx - (r.left + r.width / 2)) / (r.width / 2), -1.4, 1.4), dy = clamp((ly - (r.top + r.height / 2)) / (r.height / 2), -1.4, 1.4);
+      p.style.setProperty("--ry", (dx * 3.5).toFixed(2) + "deg"); p.style.setProperty("--rx", (-dy * 3.5).toFixed(2) + "deg");
+      p.style.setProperty("--gx", ((lx - r.left) / r.width * 100).toFixed(1) + "%"); p.style.setProperty("--gy", ((ly - r.top) / r.height * 100).toFixed(1) + "%");
+      const b = document.querySelector(".magnet:not(:disabled)");
+      if (b) {
+        const br = b.getBoundingClientRect(), bx = lx - (br.left + br.width / 2), by = ly - (br.top + br.height / 2);
+        b.style.transform = Math.hypot(bx, by) < 150 ? `translate(${(bx * .18).toFixed(1)}px, ${(by * .28).toFixed(1)}px)` : "";
+      }
+    });
+  }, { passive: true });
+}
 
-$("failBtn").onclick = () => {
-  if (!confirm("Claim all the locked USDC? This cannot be undone.")) return;
-  send("Claim", () => new ethers.Contract(pactAddr, PACT_ABI, signer).fail());
-};
+/* ===== Live updates ===== */
+setInterval(() => { if (S.view === "app" && !document.hidden && !S.busy) refresh().catch(() => {}); }, 20000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && S.view === "app" && !S.busy) refresh().catch(() => {}); });
 
-$("withdrawBtn").onclick = () =>
-  send("Withdraw", () => new ethers.Contract(pactAddr, PACT_ABI, signer).withdraw());
-
-refresh();
+/* ===== Start ===== */
+(async () => {
+  if (!window.ethereum) return;
+  try {
+    const accs = await window.ethereum.request({ method: "eth_accounts" });
+    const chain = await window.ethereum.request({ method: "eth_chainId" });
+    if (accs && accs.length && chain === BASE_HEX) scan(false);
+  } catch {}
+})();
+})();
 </script>
 </body>
 </html>
